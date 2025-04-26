@@ -96,6 +96,7 @@ export default function DashboardClientPage() {
                 variant="ghost"
                 size="icon"
                 className="rounded-lg h-10 w-10 bg-[#73a9e9]/10 dark:bg-[#73a9e9]/5 text-[#73a9e9]"
+                onClick={() => router.push("/appointments")}
               >
                 <Calendar className="h-5 w-5" />
               </Button>
@@ -111,6 +112,7 @@ export default function DashboardClientPage() {
                 variant="ghost"
                 size="icon"
                 className="rounded-lg h-10 w-10 hover:bg-[#f5f5f7] dark:hover:bg-[#3a3a3c]"
+                onClick={() => router.push("/messages")}
               >
                 <MessageSquare className="h-5 w-5" />
               </Button>
@@ -127,7 +129,7 @@ export default function DashboardClientPage() {
           {/* Main content */}
           <div className="flex-1">
             <header className="flex justify-between items-center px-6 py-4 border-b border-[#e5e5ea] dark:border-[#3a3a3c]">
-              <h1 className="text-2xl font-medium text-[#1d1d1f] dark:text-white">Atlas</h1>
+              <h1 className="text-2xl font-medium text-[#1d1d1f] dark:text-white">Atlas AI</h1>
               <div className="flex gap-4 items-center">
                 <ThemeToggle />
                 <Button
@@ -144,7 +146,10 @@ export default function DashboardClientPage() {
 
               {/* Metric cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-                <Card className="bg-white dark:bg-[#2c2c2e] shadow-sm border-0 rounded-xl overflow-hidden">
+                <Card
+                  className="bg-white dark:bg-[#2c2c2e] shadow-sm border-0 rounded-xl overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+                  onClick={() => router.push("/appointments")}
+                >
                   <CardContent className="p-6">
                     <div className="flex items-start gap-4">
                       <div className="rounded-full bg-[#73a9e9]/10 dark:bg-[#73a9e9]/5 p-3">
@@ -159,7 +164,10 @@ export default function DashboardClientPage() {
                   </CardContent>
                 </Card>
 
-                <Card className="bg-white dark:bg-[#2c2c2e] shadow-sm border-0 rounded-xl overflow-hidden">
+                <Card
+                  className="bg-white dark:bg-[#2c2c2e] shadow-sm border-0 rounded-xl overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+                  onClick={() => router.push("/messages")}
+                >
                   <CardContent className="p-6">
                     <div className="flex items-start gap-4">
                       <div className="rounded-full bg-[#73a9e9]/10 dark:bg-[#73a9e9]/5 p-3">
@@ -174,7 +182,7 @@ export default function DashboardClientPage() {
                   </CardContent>
                 </Card>
 
-                <Card className="bg-white dark:bg-[#2c2c2e] shadow-sm border-0 rounded-xl overflow-hidden">
+                <Card className="bg-white dark:bg-[#2c2c2e] shadow-sm border-0 rounded-xl overflow-hidden cursor-pointer hover:shadow-md transition-shadow">
                   <CardContent className="p-6">
                     <div className="flex items-start gap-4">
                       <div className="rounded-full bg-[#73a9e9]/10 dark:bg-[#73a9e9]/5 p-3">
@@ -189,7 +197,7 @@ export default function DashboardClientPage() {
                   </CardContent>
                 </Card>
 
-                <Card className="bg-white dark:bg-[#2c2c2e] shadow-sm border-0 rounded-xl overflow-hidden">
+                <Card className="bg-white dark:bg-[#2c2c2e] shadow-sm border-0 rounded-xl overflow-hidden cursor-pointer hover:shadow-md transition-shadow">
                   <CardContent className="p-6">
                     <div className="flex items-start gap-4">
                       <div className="rounded-full bg-[#73a9e9]/10 dark:bg-[#73a9e9]/5 p-3">
@@ -252,10 +260,16 @@ export default function DashboardClientPage() {
                       <p className="text-sm text-[#86868b] dark:text-[#a1a1a6] mb-4">Links to common tasks...</p>
 
                       <div className="flex flex-col gap-3">
-                        <Button className="bg-[#f5f5f7] dark:bg-[#3a3a3c] text-[#1d1d1f] dark:text-white hover:bg-[#e5e5ea] dark:hover:bg-[#4a4a4c] rounded-lg h-10 px-4 text-sm font-medium justify-start">
+                        <Button
+                          className="bg-[#f5f5f7] dark:bg-[#3a3a3c] text-[#1d1d1f] dark:text-white hover:bg-[#e5e5ea] dark:hover:bg-[#4a4a4c] rounded-lg h-10 px-4 text-sm font-medium justify-start"
+                          onClick={() => router.push("/patients")}
+                        >
                           <Plus className="h-4 w-4 mr-2" /> ADD PATIENT
                         </Button>
-                        <Button className="bg-[#f5f5f7] dark:bg-[#3a3a3c] text-[#1d1d1f] dark:text-white hover:bg-[#e5e5ea] dark:hover:bg-[#4a4a4c] rounded-lg h-10 px-4 text-sm font-medium justify-start">
+                        <Button
+                          className="bg-[#f5f5f7] dark:bg-[#3a3a3c] text-[#1d1d1f] dark:text-white hover:bg-[#e5e5ea] dark:hover:bg-[#4a4a4c] rounded-lg h-10 px-4 text-sm font-medium justify-start"
+                          onClick={() => router.push("/messages")}
+                        >
                           <MessageSquare className="h-4 w-4 mr-2" /> NEW MESSAGE
                         </Button>
                       </div>
