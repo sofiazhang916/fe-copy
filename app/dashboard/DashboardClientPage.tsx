@@ -96,7 +96,7 @@ export default function DashboardClientPage() {
                 variant="ghost"
                 size="icon"
                 className="rounded-lg h-10 w-10 bg-[#73a9e9]/10 dark:bg-[#73a9e9]/5 text-[#73a9e9]"
-                onClick={() => router.push("/appointments")}
+                onClick={() => router.push("/scheduling")}
               >
                 <Calendar className="h-5 w-5" />
               </Button>
@@ -148,7 +148,7 @@ export default function DashboardClientPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
                 <Card
                   className="bg-white dark:bg-[#2c2c2e] shadow-sm border-0 rounded-xl overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => router.push("/appointments")}
+                  onClick={() => router.push("/scheduling")}
                 >
                   <CardContent className="p-6">
                     <div className="flex items-start gap-4">

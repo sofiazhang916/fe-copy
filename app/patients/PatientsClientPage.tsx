@@ -179,7 +179,7 @@ export default function PatientsClientPage() {
                 variant="ghost"
                 size="icon"
                 className="rounded-lg h-10 w-10 hover:bg-[#f5f5f7] dark:hover:bg-[#3a3a3c]"
-                onClick={() => router.push("/dashboard")}
+                onClick={() => router.push("/scheduling")}
               >
                 <Calendar className="h-5 w-5" />
               </Button>
