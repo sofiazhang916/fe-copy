@@ -5,9 +5,10 @@ import { Inter } from "next/font/google"
 
 const inter = Inter({ subsets: ["latin"] })
 
+// Update the metadata to include AI
 export const metadata: Metadata = {
-  title: "Atlas | Healthcare Platform",
-  description: "A modern healthcare platform for medical professionals",
+  title: "Atlas AI | Healthcare Platform",
+  description: "A modern AI-powered healthcare platform for medical professionals",
     generator: 'v0.dev'
 }
 
