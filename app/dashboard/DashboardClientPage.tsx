@@ -28,7 +28,13 @@ export default function DashboardClientPage() {
       try {
         setIsRefreshing(true)
         // Refresh tokens on page load
-        await refreshTokens()
+        const refreshResult = await refreshTokens()
+
+        // If refresh failed but we still have a token, we can continue
+        // This prevents unnecessary redirects when refresh token fails
+        if (!refreshResult && !isAuthenticated()) {
+          throw new Error("Authentication failed")
+        }
         setIsRefreshing(false)
       } catch (error) {
         console.error("Failed to refresh tokens:", error)
@@ -130,6 +136,12 @@ export default function DashboardClientPage() {
           <div className="flex-1">
             <header className="flex justify-between items-center px-6 py-4 border-b border-[#e5e5ea] dark:border-[#3a3a3c]">
               <h1 className="text-2xl font-medium text-[#1d1d1f] dark:text-white">Atlas AI</h1>
+              <Button
+                onClick={() => router.push("/patient")}
+                className="bg-[#f5f5f7] dark:bg-[#3a3a3c] text-[#1d1d1f] dark:text-white hover:bg-[#e5e5ea] dark:hover:bg-[#4a4a4c] rounded-lg h-9 px-4 text-sm font-medium"
+              >
+                Switch to Patient View
+              </Button>
               <div className="flex gap-4 items-center">
                 <ThemeToggle />
                 <Button

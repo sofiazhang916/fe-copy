@@ -22,6 +22,7 @@ export const clearTokens = () => {
   localStorage.removeItem("refreshToken")
   localStorage.removeItem("idToken")
   localStorage.removeItem("userEmail")
+  localStorage.removeItem("userRole")
 }
 
 // Check if user is authenticated
@@ -29,36 +30,61 @@ export const isAuthenticated = () => {
   return !!localStorage.getItem("accessToken")
 }
 
-// Refresh tokens
+// Get user role (provider or patient)
+export const getUserRole = () => {
+  return localStorage.getItem("userRole") || "provider"
+}
+
+// Set user role
+export const setUserRole = (role: "provider" | "patient") => {
+  localStorage.setItem("userRole", role)
+}
+
+// Toggle user role
+export const toggleUserRole = () => {
+  const currentRole = getUserRole()
+  const newRole = currentRole === "provider" ? "patient" : "provider"
+  setUserRole(newRole)
+  return newRole
+}
+
+// Refresh tokens - with better error handling
 export const refreshTokens = async () => {
-  const { refreshToken, idToken } = getTokens()
-  const email = localStorage.getItem("userEmail")
+  try {
+    const { refreshToken, idToken } = getTokens()
+    const email = localStorage.getItem("userEmail")
 
-  if (!refreshToken || !idToken || !email) {
-    throw new Error("No refresh token available")
-  }
+    if (!refreshToken || !idToken || !email) {
+      console.error("Missing refresh token, ID token, or email")
+      return null
+    }
 
-  const response = await fetch("https://8qgxh9alt4.execute-api.us-west-1.amazonaws.com/dev/doctor/updateTokens", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      action: "refresh_token",
-      credentials: {
-        email,
-        refresh_token: refreshToken,
-        id_token: idToken,
+    const response = await fetch("https://8qgxh9alt4.execute-api.us-west-1.amazonaws.com/dev/doctor/updateTokens", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
       },
-    }),
-  })
+      body: JSON.stringify({
+        action: "refresh_token",
+        credentials: {
+          email,
+          refresh_token: refreshToken,
+          id_token: idToken,
+        },
+      }),
+    })
 
-  if (!response.ok) {
-    throw new Error("Failed to refresh tokens")
+    if (!response.ok) {
+      console.error("Failed to refresh tokens, status:", response.status)
+      return null
+    }
+
+    const data = await response.json()
+    storeTokens(data.access_token, data.refresh_token, data.id_token)
+
+    return data
+  } catch (error) {
+    console.error("Error refreshing tokens:", error)
+    return null
   }
-
-  const data = await response.json()
-  storeTokens(data.access_token, data.refresh_token, data.id_token)
-
-  return data
 }

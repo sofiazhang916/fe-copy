@@ -66,6 +66,8 @@ export default function LoginForm() {
         description: "Welcome back to your dashboard",
       })
 
+      // For now, we'll redirect to the dashboard
+      // In a real app, we would check the user role
       router.push("/dashboard")
     } catch (error) {
       console.error("Login error:", error)
@@ -101,7 +103,7 @@ export default function LoginForm() {
             onChange={(e) => setEmail(e.target.value)}
             required
             className="h-11 bg-[#f5f5f7] dark:bg-[#2c2c2e] border-0 rounded-lg px-4 text-[#1d1d1f] dark:text-white focus-visible:ring-1 focus-visible:ring-[#73a9e9] text-sm"
-            placeholder="doctor@example.com"
+            placeholder="email@example.com"
           />
         </div>
 
