@@ -156,8 +156,31 @@ export default function DashboardClientPage() {
   const handleLogout = () => {
     // Clear all tokens
     clearTokens()
-    router.push("/")
+    
+    // Additional explicit cookie clearing for maximum reliability
+    // This ensures even if token-service cookie clearing fails, we have backup clearing
+    const clearCookie = (name: string) => {
+      document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    };
+    
+    clearCookie("accessToken");
+    clearCookie("refreshToken");
+    clearCookie("idToken");
+    clearCookie("userRole");
+    
+    console.log("[Logout] Tokens cleared, redirecting to login");
+    
+    // Force a page reload to the home page
+    window.location.href = "/";
   }
+
+  // Custom navigation function that keeps tokens intact
+  const navigateTo = (path: string) => {
+    console.log(`[Dashboard] Navigating to: ${path}`);
+    
+    // Use router.push for client-side navigation which preserves the session
+    router.push(path);
+  };
 
   if (isLoading) {
     return (
@@ -202,7 +225,7 @@ export default function DashboardClientPage() {
                 variant="ghost"
                 size="icon"
                 className="rounded-lg h-10 w-10 bg-[#73a9e9]/10 dark:bg-[#73a9e9]/5 text-[#73a9e9]"
-                onClick={() => router.push("/scheduling")}
+                onClick={() => navigateTo("/scheduling")}
               >
                 <Calendar className="h-5 w-5" />
               </Button>
@@ -210,7 +233,7 @@ export default function DashboardClientPage() {
                 variant="ghost"
                 size="icon"
                 className="rounded-lg h-10 w-10 hover:bg-[#f5f5f7] dark:hover:bg-[#3a3a3c]"
-                onClick={() => router.push("/patients")}
+                onClick={() => navigateTo("/patients")}
               >
                 <User className="h-5 w-5" />
               </Button>
@@ -218,7 +241,7 @@ export default function DashboardClientPage() {
                 variant="ghost"
                 size="icon"
                 className="rounded-lg h-10 w-10 hover:bg-[#f5f5f7] dark:hover:bg-[#3a3a3c]"
-                onClick={() => router.push("/messages")}
+                onClick={() => navigateTo("/messages")}
               >
                 <MessageSquare className="h-5 w-5" />
               </Button>
@@ -237,14 +260,14 @@ export default function DashboardClientPage() {
             <header className="flex justify-between items-center px-6 py-4 border-b border-[#e5e5ea] dark:border-[#3a3a3c]">
               <h1 className="text-2xl font-medium text-[#1d1d1f] dark:text-white">Atlas AI</h1>
               <Button
-                onClick={() => router.push("/patient")}
+                onClick={() => navigateTo("/patient")}
                 className="bg-[#f5f5f7] dark:bg-[#3a3a3c] text-[#1d1d1f] dark:text-white hover:bg-[#e5e5ea] dark:hover:bg-[#4a4a4c] rounded-lg h-9 px-4 text-sm font-medium"
               >
                 Switch to Patient View
               </Button>
               <div className="flex gap-4 items-center">
                 <Button
-                  onClick={() => router.push("/profile")}
+                  onClick={() => navigateTo("/profile")}
                   className="bg-[#f5f5f7] dark:bg-[#3a3a3c] text-[#1d1d1f] dark:text-white hover:bg-[#e5e5ea] dark:hover:bg-[#4a4a4c] rounded-lg h-9 px-4 text-sm font-medium"
                 >
                   <User2 className="mr-2 h-4 w-4" /> My Profile
@@ -266,7 +289,7 @@ export default function DashboardClientPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
                 <Card
                   className="bg-white dark:bg-[#2c2c2e] shadow-sm border-0 rounded-xl overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => router.push("/scheduling")}
+                  onClick={() => navigateTo("/scheduling")}
                 >
                   <CardContent className="p-6">
                     <div className="flex items-start gap-4">
@@ -284,7 +307,7 @@ export default function DashboardClientPage() {
 
                 <Card
                   className="bg-white dark:bg-[#2c2c2e] shadow-sm border-0 rounded-xl overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => router.push("/messages")}
+                  onClick={() => navigateTo("/messages")}
                 >
                   <CardContent className="p-6">
                     <div className="flex items-start gap-4">
@@ -380,13 +403,13 @@ export default function DashboardClientPage() {
                       <div className="flex flex-col gap-3">
                         <Button
                           className="bg-[#f5f5f7] dark:bg-[#3a3a3c] text-[#1d1d1f] dark:text-white hover:bg-[#e5e5ea] dark:hover:bg-[#4a4a4c] rounded-lg h-10 px-4 text-sm font-medium justify-start"
-                          onClick={() => router.push("/patients")}
+                          onClick={() => navigateTo("/patients")}
                         >
                           <Plus className="h-4 w-4 mr-2" /> ADD PATIENT
                         </Button>
                         <Button
                           className="bg-[#f5f5f7] dark:bg-[#3a3a3c] text-[#1d1d1f] dark:text-white hover:bg-[#e5e5ea] dark:hover:bg-[#4a4a4c] rounded-lg h-10 px-4 text-sm font-medium justify-start"
-                          onClick={() => router.push("/messages")}
+                          onClick={() => navigateTo("/messages")}
                         >
                           <MessageSquare className="h-4 w-4 mr-2" /> NEW MESSAGE
                         </Button>

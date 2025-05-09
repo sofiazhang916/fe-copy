@@ -26,7 +26,6 @@ export default function LoginForm() {
     setErrorMessage("")
 
     try {
-      // No longer hashing password
       console.log("Calling login API with:", { email, password: "[REDACTED]" })
 
       const response = await fetch("https://8qgxh9alt4.execute-api.us-west-1.amazonaws.com/dev/doctor/login", {
@@ -58,18 +57,26 @@ export default function LoginForm() {
             const { access_token, refresh_token, id_token } = data.body.tokens;
             
             if (access_token && refresh_token && id_token) {
-              // Store tokens in localStorage
-              storeTokens(access_token, refresh_token, id_token)
-              console.log("Tokens stored successfully")
+              // Debug the actual tokens we're getting
+              console.log("[LOGIN] Received tokens from API:", {
+                access_token_exists: !!access_token,
+                refresh_token_exists: !!refresh_token,
+                id_token_exists: !!id_token
+              });
+              
+              // Store tokens in localStorage and cookies
+              storeTokens(access_token, refresh_token, id_token);
+              console.log("Tokens stored successfully");
               
               // Extra verification to confirm tokens are stored correctly
               console.log("Verification - tokens stored properly:", {
                 accessToken: !!localStorage.getItem("accessToken"),
                 refreshToken: !!localStorage.getItem("refreshToken"),
                 idToken: !!localStorage.getItem("idToken"),
+                cookieToken: document.cookie.includes("accessToken")
               });
               
-              // Set cookie directly as a failsafe
+              // Set cookie directly as a failsafe - IMPORTANT: Use "accessToken" (camelCase) to match middleware expectations
               const setCookie = (name: string, value: string, days: number = 1) => {
                 const date = new Date();
                 date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
@@ -77,9 +84,13 @@ export default function LoginForm() {
                 document.cookie = name + "=" + (value || "") + expires + "; path=/";
               };
               
-              // Set cookie with access token directly
+              // Explicitly use the camelCase name for the cookie to match middleware checks
               setCookie("accessToken", access_token);
-              console.log("Cookie set directly:", document.cookie.includes("accessToken"));
+              // Double verify cookie exists
+              console.log("Cookie verification:", {
+                cookieExists: document.cookie.includes("accessToken"),
+                cookieValue: document.cookie.split(';').find(c => c.trim().startsWith('accessToken='))
+              });
             } else {
               console.error("Missing one or more tokens in response")
             }

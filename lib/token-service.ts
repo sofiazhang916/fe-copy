@@ -2,10 +2,32 @@
 
 // Set a cookie with the provided name, value, and expiration time
 const setCookie = (name: string, value: string, days: number = 7) => {
-  const date = new Date();
-  date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-  const expires = "; expires=" + date.toUTCString();
-  document.cookie = name + "=" + (value || "") + expires + "; path=/";
+  try {
+    const date = new Date();
+    date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+    const expires = "; expires=" + date.toUTCString();
+    document.cookie = name + "=" + (value || "") + expires + "; path=/; SameSite=Lax";
+    console.log(`[TokenService] Cookie '${name}' set successfully`);
+  } catch (error) {
+    console.error(`[TokenService] Error setting cookie '${name}':`, error);
+  }
+};
+
+// Get a cookie by name
+const getCookie = (name: string) => {
+  try {
+    const nameEQ = name + "=";
+    const ca = document.cookie.split(';');
+    for(let i=0; i < ca.length; i++) {
+      let c = ca[i];
+      while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+      if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+    }
+    return null;
+  } catch (error) {
+    console.error(`[TokenService] Error getting cookie '${name}':`, error);
+    return null;
+  }
 };
 
 // For debugging
@@ -14,25 +36,43 @@ const debugTokens = (operation: string) => {
   const refreshToken = localStorage.getItem("refreshToken");
   const idToken = localStorage.getItem("idToken");
   
-  console.log(`[TokenService:${operation}] accessToken exists: ${!!accessToken}`);
+  // Also log cookie status
+  const cookieToken = getCookie("accessToken");
+  
+  console.log(`[TokenService:${operation}] accessToken exists in localStorage: ${!!accessToken}`);
   console.log(`[TokenService:${operation}] refreshToken exists: ${!!refreshToken}`);
   console.log(`[TokenService:${operation}] idToken exists: ${!!idToken}`);
+  console.log(`[TokenService:${operation}] accessToken exists in cookie: ${!!cookieToken}`);
   
-  return { accessToken, refreshToken, idToken };
+  return { accessToken, refreshToken, idToken, cookieToken };
 };
 
 // Store tokens securely
-export const storeTokens = (accessToken: string, refreshToken: string, idToken: string) => {
+// IMPORTANT: This function receives snake_case tokens from the API (access_token)
+// but stores them as camelCase (accessToken) for consistency with the middleware
+export const storeTokens = (access_token: string, refresh_token: string, id_token: string, email?: string) => {
   console.log("[TokenService] Storing tokens...");
+  console.log("[TokenService] Tokens received for storage:", { 
+    access_token_exists: !!access_token,
+    refresh_token_exists: !!refresh_token,
+    id_token_exists: !!id_token,
+    email: email || 'not provided'
+  });
   
   try {
-    // Store in localStorage for client-side use
-    localStorage.setItem("accessToken", accessToken);
-    localStorage.setItem("refreshToken", refreshToken);
-    localStorage.setItem("idToken", idToken);
+    // Store in localStorage with camelCase keys (different from API response)
+    localStorage.setItem("accessToken", access_token);
+    localStorage.setItem("refreshToken", refresh_token);
+    localStorage.setItem("idToken", id_token);
     
-    // Also store in cookies for middleware use
-    setCookie("accessToken", accessToken, 1); // 1 day expiry
+    // Store email if provided
+    if (email) {
+      localStorage.setItem("userEmail", email);
+      console.log(`[TokenService] Storing email: ${email}`);
+    }
+    
+    // Also store in cookies for middleware - MUST use camelCase to match middleware expectation
+    setCookie("accessToken", access_token, 1); // 1 day expiry
     
     // Verify storage
     debugTokens("store");
@@ -44,12 +84,12 @@ export const storeTokens = (accessToken: string, refreshToken: string, idToken: 
   }
 }
 
-// Get tokens
+// Get tokens with fallback to cookies
 export const getTokens = () => {
   const tokens = {
-    accessToken: localStorage.getItem("accessToken"),
-    refreshToken: localStorage.getItem("refreshToken"),
-    idToken: localStorage.getItem("idToken"),
+    accessToken: localStorage.getItem("accessToken") || getCookie("accessToken") || null,
+    refreshToken: localStorage.getItem("refreshToken") || null,
+    idToken: localStorage.getItem("idToken") || null,
   };
   
   console.log("[TokenService] Getting tokens:", {
@@ -80,14 +120,19 @@ export const clearTokens = () => {
   debugTokens("clear");
 }
 
-// Check if user is authenticated
+// Check if user is authenticated - checking both localStorage and cookies
 export const isAuthenticated = () => {
   const accessToken = localStorage.getItem("accessToken");
-  console.log(`[TokenService] isAuthenticated check: ${!!accessToken}`);
+  const cookieToken = getCookie("accessToken");
+  console.log(`[TokenService] isAuthenticated check:`, {
+    localStorage: !!accessToken,
+    cookie: !!cookieToken
+  });
   
-  // More robust check to verify token is actually there and not just empty
-  if (!accessToken || accessToken === "undefined" || accessToken === "null") {
-    console.log("[TokenService] Invalid or missing access token");
+  // Check both sources for maximum compatibility
+  if ((!accessToken || accessToken === "undefined" || accessToken === "null") && 
+      (!cookieToken || cookieToken === "undefined" || cookieToken === "null")) {
+    console.log("[TokenService] Invalid or missing access token in both localStorage and cookie");
     return false;
   }
   
@@ -150,7 +195,7 @@ export const refreshTokens = async () => {
       }
 
       const data = await response.json();
-      const success = storeTokens(data.access_token, data.refresh_token, data.id_token);
+      const success = storeTokens(data.access_token, data.refresh_token, data.id_token, data.email);
       
       if (!success) {
         throw new Error("Failed to store refreshed tokens");
