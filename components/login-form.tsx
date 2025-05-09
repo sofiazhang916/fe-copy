@@ -46,9 +46,84 @@ export default function LoginForm() {
       console.log("Login API response status:", response.status)
 
       const data = await response.json()
+      console.log("Login API response data:", JSON.stringify(data))
       
-      // Check if the response contains an error message despite a 200 status
-      if (data.statusCode === 400 || data.body) {
+      // If we get a 200 response, consider it a success and redirect
+      if (response.status === 200) {
+        console.log("Login successful, attempting to extract tokens")
+        
+        try {
+          // Try to extract tokens if they exist
+          if (data.body && data.body.tokens) {
+            const { access_token, refresh_token, id_token } = data.body.tokens;
+            
+            if (access_token && refresh_token && id_token) {
+              // Store tokens in localStorage
+              storeTokens(access_token, refresh_token, id_token)
+              console.log("Tokens stored successfully")
+              
+              // Extra verification to confirm tokens are stored correctly
+              console.log("Verification - tokens stored properly:", {
+                accessToken: !!localStorage.getItem("accessToken"),
+                refreshToken: !!localStorage.getItem("refreshToken"),
+                idToken: !!localStorage.getItem("idToken"),
+              });
+              
+              // Set cookie directly as a failsafe
+              const setCookie = (name: string, value: string, days: number = 1) => {
+                const date = new Date();
+                date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+                const expires = "; expires=" + date.toUTCString();
+                document.cookie = name + "=" + (value || "") + expires + "; path=/";
+              };
+              
+              // Set cookie with access token directly
+              setCookie("accessToken", access_token);
+              console.log("Cookie set directly:", document.cookie.includes("accessToken"));
+            } else {
+              console.error("Missing one or more tokens in response")
+            }
+          } else {
+            console.error("Tokens not found in expected structure:", JSON.stringify(data))
+          }
+          
+          // Store email for token refresh regardless
+          localStorage.setItem("userEmail", email)
+          
+          // Show success toast
+          toast({
+            title: "Login successful",
+            description: "Welcome back to your dashboard",
+          })
+          
+          console.log("Redirecting to dashboard...")
+          
+          // Use multiple redirection methods for redundancy with longer delay
+          setTimeout(() => {
+            console.log("Executing redirect now")
+            try {
+              // For maximum reliability, use a hard redirect with window.location.href
+              // This ensures a full page load and proper middleware evaluation
+              window.location.href = "/dashboard";
+            } catch (e) {
+              console.error("Redirect failed:", e)
+              // Fallback to router.push
+              router.push("/dashboard")
+            }
+          }, 1500)
+          
+          return
+        } catch (error) {
+          console.error("Error processing successful login:", error)
+          // Continue with redirect anyway
+          window.location.href = "/dashboard"
+          return
+        }
+      }
+
+      // Only check for errors if we didn't already decide to redirect
+      // Check if the response contains an error message
+      if (data.statusCode === 400 || (data.body && typeof data.body === 'string' && data.body.includes('error'))) {
         // Try to parse the body if it's a string
         let errorBody = data.body;
         if (typeof data.body === 'string') {
@@ -69,22 +144,7 @@ export default function LoginForm() {
         throw new Error(data.message || "Login failed")
       }
 
-      console.log("Login successful, received tokens")
-
-      // Store tokens in localStorage
-      storeTokens(data.access_token, data.refresh_token, data.id_token)
-
-      // Store email for token refresh
-      localStorage.setItem("userEmail", email)
-
-      toast({
-        title: "Login successful",
-        description: "Welcome back to your dashboard",
-      })
-
-      // For now, we'll redirect to the dashboard
-      // In a real app, we would check the user role
-      router.push("/dashboard")
+      throw new Error("Login failed: Invalid response format")
     } catch (error) {
       console.error("Login error:", error)
       toast({

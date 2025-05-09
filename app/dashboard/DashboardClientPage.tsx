@@ -20,6 +20,14 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { Card, CardContent } from "@/components/ui/card"
 import { clearTokens, isAuthenticated, refreshTokens, storeTokens } from "@/lib/token-service"
 
+// Helper function to get cookie by name
+function getCookie(name: string) {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop()?.split(';').shift();
+  return null;
+}
+
 export default function DashboardClientPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -28,17 +36,70 @@ export default function DashboardClientPage() {
   const { toast } = useToast()
 
   useEffect(() => {
+    // This function will run once the component is fully mounted
     const initializeDashboard = async () => {
-      // Check if user is logged in
-      if (!isAuthenticated()) {
-        router.push("/")
-        return
+      console.log("Dashboard initializing...");
+      
+      // Enhanced token check that looks at both localStorage and cookies
+      const checkAuth = () => {
+        const localStorageToken = localStorage.getItem("accessToken");
+        const cookieToken = getCookie("accessToken");
+        
+        console.log("Auth check:", {
+          localStorageToken: !!localStorageToken,
+          cookieToken: !!cookieToken,
+        });
+        
+        return !!localStorageToken || !!cookieToken;
+      };
+      
+      // Check localStorage directly before waiting to help with debugging
+      console.log("Initial token check:", {
+        accessToken: localStorage.getItem("accessToken"),
+        refreshToken: localStorage.getItem("refreshToken"),
+        idToken: localStorage.getItem("idToken"),
+        cookieToken: getCookie("accessToken"),
+      });
+      
+      // IMPORTANT: Wait for a moment to ensure localStorage is available and fully updated
+      // Increased delay to match login form's timing
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Now check authentication after waiting
+      console.log("Checking authentication state after delay...");
+      console.log("Current tokens:", {
+        accessToken: localStorage.getItem("accessToken"),
+        hasToken: !!localStorage.getItem("accessToken"),
+        cookieToken: getCookie("accessToken"),
+      });
+      
+      // Try multiple times to check authentication before giving up
+      let authCheckCount = 0;
+      const maxAuthChecks = 3;
+      
+      while (authCheckCount < maxAuthChecks) {
+        // Use the enhanced authentication check
+        if (checkAuth()) {
+          console.log("AUTH SUCCESSFUL - proceeding with dashboard");
+          break;
+        } else {
+          console.log(`AUTH CHECK FAILED (${authCheckCount + 1}/${maxAuthChecks}) - waiting 500ms before retrying`);
+          authCheckCount++;
+          if (authCheckCount >= maxAuthChecks) {
+            console.log("AUTH FAILED - redirecting to login");
+            router.push("/");
+            return;
+          }
+          // Wait a bit and try again
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
       }
-
+      
       try {
         setIsRefreshing(true)
         // Refresh tokens on page load
         const refreshResult = await refreshTokens()
+        console.log("Token refresh result:", refreshResult ? "success" : "failed")
 
         // If refresh returned a result with demo mode flag, show a toast
         if (refreshResult && refreshResult.is_demo_mode) {
@@ -88,6 +149,7 @@ export default function DashboardClientPage() {
       }
     }
 
+    // Call the function
     initializeDashboard()
   }, [router, toast])
 

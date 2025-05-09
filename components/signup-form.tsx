@@ -46,6 +46,13 @@ export default function SignupForm() {
     setFormData((prev) => ({ ...prev, phone_number: value }))
   }
 
+  // Validate phone number format (E.164 format)
+  const isValidPhoneNumber = (phone: string) => {
+    // Basic E.164 format validation: + followed by digits only, minimum length of 8
+    const phoneRegex = /^\+[0-9]{8,15}$/
+    return phoneRegex.test(phone)
+  }
+
   const validateForm = () => {
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -72,8 +79,8 @@ export default function SignupForm() {
       return false
     }
 
-    // Validate phone number (basic check)
-    if (formData.phone_number.length < 8) {
+    // Validate phone number in E.164 format
+    if (!isValidPhoneNumber(formData.phone_number)) {
       setErrorMessage("Please enter a valid phone number")
       return false
     }
@@ -127,7 +134,7 @@ export default function SignupForm() {
       console.log("Signup API response data:", responseData)
 
       // Check if the response contains an error message despite a 200 status
-      if (responseData.statusCode === 400 || responseData.body) {
+      if (responseData.statusCode === 400 ) {
         // Try to parse the body if it's a string
         let errorBody = responseData.body;
         if (typeof responseData.body === 'string') {
@@ -147,18 +154,12 @@ export default function SignupForm() {
         throw new Error(responseData.message || "Signup failed")
       }
 
-      // Store email for verification page
+      // Store email for verification page immediately
       localStorage.setItem("verificationEmail", formData.email)
       
-      // Redirect immediately to verification page
-      router.push("/verify")
-      
-      // Show toast after redirecting
-      toast({
-        title: "Signup successful",
-        description: "Please check your email for verification code",
-      })
-
+      // Force immediate navigation - use replace instead of push for more immediate effect
+      window.location.href = "/verify";
+      return; // Stop execution here
     } catch (error) {
       console.error("Signup error:", error)
       toast({
