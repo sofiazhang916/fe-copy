@@ -11,7 +11,6 @@ import { useToast } from "@/hooks/use-toast"
 import { Loader2 } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { storeTokens } from "@/lib/token-service"
-import { hashPassword } from "@/lib/password-utils"
 
 export default function LoginForm() {
   const [email, setEmail] = useState("")
@@ -27,10 +26,8 @@ export default function LoginForm() {
     setErrorMessage("")
 
     try {
-      // Hash password before sending to API
-      const hashedPassword = hashPassword(password)
-
-      console.log("Calling login API with:", { email, password: "[HASHED]" })
+      // No longer hashing password
+      console.log("Calling login API with:", { email, password: "[REDACTED]" })
 
       const response = await fetch("https://8qgxh9alt4.execute-api.us-west-1.amazonaws.com/dev/doctor/login", {
         method: "POST",
@@ -41,7 +38,7 @@ export default function LoginForm() {
           action: "login",
           credentials: {
             email,
-            password: hashedPassword,
+            password: password, // Send plain password
           },
         }),
       })

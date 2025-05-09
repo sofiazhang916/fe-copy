@@ -28,6 +28,7 @@ export default function SignupForm() {
     color: "#f87171",
   })
   const [isLoading, setIsLoading] = useState(false)
+  const [errorMessage, setErrorMessage] = useState("")
   const { toast } = useToast()
   const router = useRouter()
 
@@ -45,30 +46,59 @@ export default function SignupForm() {
     setFormData((prev) => ({ ...prev, phone_number: value }))
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const validateForm = () => {
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(formData.email)) {
+      setErrorMessage("Please enter a valid email address")
+      return false
+    }
 
     // Validate password strength
     if (passwordStrength.score < 3) {
-      toast({
-        title: "Weak password",
-        description: "Please create a stronger password. " + passwordStrength.feedback,
-        variant: "destructive",
-      })
+      setErrorMessage("Please create a stronger password. " + passwordStrength.feedback)
+      return false
+    }
+
+    // Validate name
+    if (formData.name.trim().length < 2) {
+      setErrorMessage("Please enter your full name")
+      return false
+    }
+
+    // Validate practice name
+    if (formData.practice_name.trim().length < 2) {
+      setErrorMessage("Please enter your practice name")
+      return false
+    }
+
+    // Validate phone number (basic check)
+    if (formData.phone_number.length < 8) {
+      setErrorMessage("Please enter a valid phone number")
+      return false
+    }
+
+    return true
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setErrorMessage("")
+    
+    // Validate form before submission
+    if (!validateForm()) {
       return
     }
 
     setIsLoading(true)
 
     try {
-      // Hash password before sending to API
-      const hashedPassword = hashPassword(formData.password)
-
+      // No longer hashing password
       console.log("Calling signup API with data:", {
         action: "signup",
         account_details: {
           email: formData.email,
-          password: "[HASHED]", // Don't log actual password
+          password: "[REDACTED]", // Don't log actual password
           name: formData.name,
           practice_name: formData.practice_name,
           phone_number: formData.phone_number,
@@ -84,7 +114,7 @@ export default function SignupForm() {
           action: "signup",
           account_details: {
             email: formData.email,
-            password: hashedPassword,
+            password: formData.password, // Send plain password
             name: formData.name,
             practice_name: formData.practice_name,
             phone_number: formData.phone_number,
@@ -96,18 +126,39 @@ export default function SignupForm() {
       const responseData = await response.json()
       console.log("Signup API response data:", responseData)
 
+      // Check if the response contains an error message despite a 200 status
+      if (responseData.statusCode === 400 || responseData.body) {
+        // Try to parse the body if it's a string
+        let errorBody = responseData.body;
+        if (typeof responseData.body === 'string') {
+          try {
+            errorBody = JSON.parse(responseData.body);
+          } catch (e) {
+            console.error("Failed to parse error body:", e);
+          }
+        }
+        
+        const message = errorBody?.message || "Signup failed";
+        setErrorMessage(message);
+        throw new Error(message);
+      }
+
       if (!response.ok) {
         throw new Error(responseData.message || "Signup failed")
       }
 
+      // Store email for verification page
+      localStorage.setItem("verificationEmail", formData.email)
+      
+      // Redirect immediately to verification page
+      router.push("/verify")
+      
+      // Show toast after redirecting
       toast({
         title: "Signup successful",
         description: "Please check your email for verification code",
       })
 
-      // Store email for verification page
-      localStorage.setItem("verificationEmail", formData.email)
-      router.push("/verify")
     } catch (error) {
       console.error("Signup error:", error)
       toast({
@@ -228,6 +279,12 @@ export default function SignupForm() {
             "Create account"
           )}
         </Button>
+        
+        {errorMessage && (
+          <div className="mt-2 text-center">
+            <p className="text-red-500 text-sm">{errorMessage}</p>
+          </div>
+        )}
       </form>
 
       <div className="pt-2 text-center">
