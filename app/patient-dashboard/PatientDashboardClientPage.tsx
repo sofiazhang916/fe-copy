@@ -68,20 +68,6 @@ export default function PatientDashboardClientPage() {
 
   return (
     <>
-      {showDemoNotice && (
-        <div className="w-full bg-[#73a9e9]/10 dark:bg-[#73a9e9]/5 py-3 px-6 flex justify-between items-center">
-          <p className="text-sm text-[#1d1d1f] dark:text-white">
-            This is a demo environment of Atlas. We've pre-populated the platform with Mock Data to comply with HIPAA.
-          </p>
-          <Button
-            className="bg-[#73a9e9] hover:bg-[#5a9ae6] text-white rounded-lg h-9 px-4 text-sm font-medium"
-            onClick={() => setShowDemoNotice(false)}
-          >
-            DISMISS
-          </Button>
-        </div>
-      )}
-
       <PatientLayout currentRoute="/patient-dashboard">
         <div className="mb-6">
           <h1 className="text-3xl font-medium text-[#1d1d1f] dark:text-white mb-2">Your Health Dashboard</h1>

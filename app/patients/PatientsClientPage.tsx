@@ -153,10 +153,6 @@ export default function PatientsClientPage() {
       <main className="min-h-screen bg-[#f5f5f7] dark:bg-[#1d1d1f] text-[#1d1d1f] dark:text-white">
         {showDemoNotice && (
           <div className="w-full bg-[#73a9e9]/10 dark:bg-[#73a9e9]/5 py-3 px-6 flex justify-between items-center">
-            <p className="text-sm text-[#1d1d1f] dark:text-white">
-              This is a demo environment of Atlas AI. We've pre-populated the platform with Mock Data to comply with
-              HIPAA and privacy standards. To see the full functionality, connect with the team.
-            </p>
             <Button
               className="bg-[#73a9e9] hover:bg-[#5a9ae6] text-white rounded-lg h-9 px-4 text-sm font-medium"
               onClick={() =>
