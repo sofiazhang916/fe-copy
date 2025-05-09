@@ -40,7 +40,7 @@ export default function DashboardClientPage() {
     const initializeDashboard = async () => {
       console.log("Dashboard initializing...");
       
-      // Enhanced token check that looks at both localStorage and cookies
+      // Simple authentication check
       const checkAuth = () => {
         const localStorageToken = localStorage.getItem("accessToken");
         const cookieToken = getCookie("accessToken");
@@ -53,104 +53,19 @@ export default function DashboardClientPage() {
         return !!localStorageToken || !!cookieToken;
       };
       
-      // Check localStorage directly before waiting to help with debugging
-      console.log("Initial token check:", {
-        accessToken: localStorage.getItem("accessToken"),
-        refreshToken: localStorage.getItem("refreshToken"),
-        idToken: localStorage.getItem("idToken"),
-        cookieToken: getCookie("accessToken"),
-      });
-      
-      // IMPORTANT: Wait for a moment to ensure localStorage is available and fully updated
-      // Increased delay to match login form's timing
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Now check authentication after waiting
-      console.log("Checking authentication state after delay...");
-      console.log("Current tokens:", {
-        accessToken: localStorage.getItem("accessToken"),
-        hasToken: !!localStorage.getItem("accessToken"),
-        cookieToken: getCookie("accessToken"),
-      });
-      
-      // Try multiple times to check authentication before giving up
-      let authCheckCount = 0;
-      const maxAuthChecks = 3;
-      
-      while (authCheckCount < maxAuthChecks) {
-        // Use the enhanced authentication check
-        if (checkAuth()) {
-          console.log("AUTH SUCCESSFUL - proceeding with dashboard");
-          break;
-        } else {
-          console.log(`AUTH CHECK FAILED (${authCheckCount + 1}/${maxAuthChecks}) - waiting 500ms before retrying`);
-          authCheckCount++;
-          if (authCheckCount >= maxAuthChecks) {
-            console.log("AUTH FAILED - redirecting to login");
-            router.push("/");
-            return;
-          }
-          // Wait a bit and try again
-          await new Promise(resolve => setTimeout(resolve, 500));
-        }
+      // Check if authenticated
+      if (!checkAuth()) {
+        console.log("Not authenticated, redirecting to login");
+        router.push("/");
+        return;
       }
       
-      try {
-        setIsRefreshing(true)
-        // Refresh tokens on page load
-        const refreshResult = await refreshTokens()
-        console.log("Token refresh result:", refreshResult ? "success" : "failed")
-
-        // If refresh returned a result with demo mode flag, show a toast
-        if (refreshResult && refreshResult.is_demo_mode) {
-          toast({
-            title: "Demo Mode Active",
-            description: "Using demo mode due to connection issues with the authentication server.",
-          })
-        }
-
-        // If refresh failed but we still have a token, we can continue
-        // This prevents unnecessary redirects when refresh token fails
-        if (!refreshResult && !isAuthenticated()) {
-          throw new Error("Authentication failed")
-        }
-        setIsRefreshing(false)
-      } catch (error) {
-        console.error("Failed to refresh tokens:", error)
-
-        // Check if we're in a demo environment
-        if (
-          window.location.hostname === "localhost" ||
-          window.location.hostname === "127.0.0.1" ||
-          window.location.hostname.includes("vercel.app")
-        ) {
-          toast({
-            title: "Demo Mode Active",
-            description: "Using demo mode due to connection issues with the authentication server.",
-          })
-
-          // Create mock tokens for demo purposes
-          const mockAccessToken = "demo_access_token_" + Date.now()
-          const mockRefreshToken = "demo_refresh_token_" + Date.now()
-          const mockIdToken = "demo_id_token_" + Date.now()
-
-          storeTokens(mockAccessToken, mockRefreshToken, mockIdToken)
-        } else {
-          toast({
-            title: "Session expired",
-            description: "Please log in again",
-            variant: "destructive",
-          })
-          clearTokens()
-          router.push("/")
-        }
-      } finally {
-        setIsLoading(false)
-      }
-    }
+      console.log("Authentication successful");
+      setIsLoading(false);
+    };
 
     // Call the function
-    initializeDashboard()
+    initializeDashboard();
   }, [router, toast])
 
   const handleLogout = () => {

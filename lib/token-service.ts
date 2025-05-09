@@ -159,69 +159,9 @@ export const toggleUserRole = () => {
   return newRole;
 }
 
-// Refresh tokens - with better error handling
+// Simple placeholder for refreshTokens that does nothing - keeping the function
+// to avoid breaking existing code that calls it
 export const refreshTokens = async () => {
-  console.log("[TokenService] Attempting to refresh tokens");
-  
-  try {
-    const { refreshToken, idToken } = getTokens();
-    const email = localStorage.getItem("userEmail");
-
-    if (!refreshToken || !idToken || !email) {
-      console.error("[TokenService] Missing refresh token, ID token, or email");
-      return null;
-    }
-
-    // In a demo environment, we'll add a fallback mechanism
-    try {
-      const response = await fetch("https://8qgxh9alt4.execute-api.us-west-1.amazonaws.com/dev/doctor/updateTokens", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          action: "refresh_token",
-          credentials: {
-            email,
-            refresh_token: refreshToken,
-            id_token: idToken,
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        console.error("[TokenService] Failed to refresh tokens, status:", response.status);
-        return null;
-      }
-
-      const data = await response.json();
-      const success = storeTokens(data.access_token, data.refresh_token, data.id_token, data.email);
-      
-      if (!success) {
-        throw new Error("Failed to store refreshed tokens");
-      }
-
-      return data;
-    } catch (error) {
-      // If we're in a demo environment, we'll create mock tokens
-      console.warn("[TokenService] Using demo mode due to token refresh failure:", error);
-
-      // For demo purposes only - in production, this would be a security risk
-      const mockAccessToken = "demo_access_token_" + Date.now();
-      const mockRefreshToken = "demo_refresh_token_" + Date.now();
-      const mockIdToken = "demo_id_token_" + Date.now();
-
-      storeTokens(mockAccessToken, mockRefreshToken, mockIdToken);
-
-      return {
-        access_token: mockAccessToken,
-        refresh_token: mockRefreshToken,
-        id_token: mockIdToken,
-        is_demo_mode: true,
-      };
-    }
-  } catch (error) {
-    console.error("[TokenService] Error refreshing tokens:", error);
-    return null;
-  }
+  console.log("[TokenService] Token refresh requested but disabled");
+  return null;
 }

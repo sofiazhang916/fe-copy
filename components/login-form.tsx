@@ -64,15 +64,32 @@ export default function LoginForm() {
                 id_token_exists: !!id_token
               });
               
-              // Store tokens in localStorage and cookies
-              storeTokens(access_token, refresh_token, id_token);
-              console.log("Tokens stored successfully");
+              // Extract email from the ID token if possible (for refresh)
+              let userEmail = email; // Default to login email
+              try {
+                // ID tokens are JWT - try to decode to get the email
+                const idTokenParts = id_token.split('.');
+                if (idTokenParts.length === 3) {
+                  const decodedToken = JSON.parse(atob(idTokenParts[1]));
+                  if (decodedToken.email) {
+                    userEmail = decodedToken.email;
+                    console.log(`[LOGIN] Extracted email from ID token: ${userEmail}`);
+                  }
+                }
+              } catch (e) {
+                console.error("[LOGIN] Error extracting email from ID token:", e);
+              }
+              
+              // Store tokens in localStorage and cookies - passing email as well
+              storeTokens(access_token, refresh_token, id_token, userEmail);
+              console.log("Tokens stored successfully with email:", userEmail);
               
               // Extra verification to confirm tokens are stored correctly
               console.log("Verification - tokens stored properly:", {
                 accessToken: !!localStorage.getItem("accessToken"),
                 refreshToken: !!localStorage.getItem("refreshToken"),
                 idToken: !!localStorage.getItem("idToken"),
+                userEmail: localStorage.getItem("userEmail"),
                 cookieToken: document.cookie.includes("accessToken")
               });
               
