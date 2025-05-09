@@ -46,24 +46,12 @@ export function middleware(request: NextRequest) {
     path === "/dashboard" || 
     path === "/patients" || 
     path === "/scheduling" || 
-    path === "/messages" || 
-    path === "/patient-dashboard";
+    path === "/messages";
 
   // If user is not authenticated and trying to access a protected route
   if (!isValidToken && !isPublicPath && isProtectedMainRoute) {
     console.log('[Middleware] Not authenticated, redirecting to login');
     return NextResponse.redirect(new URL("/", request.url))
-  }
-
-  // If user is authenticated and trying to access a public route
-  if (isValidToken && isPublicPath) {
-    console.log('[Middleware] Authenticated user on public path, redirecting to dashboard');
-    // Redirect to appropriate dashboard based on user role
-    if (userRole === "patient") {
-      return NextResponse.redirect(new URL("/patient-dashboard", request.url))
-    } else {
-      return NextResponse.redirect(new URL("/dashboard", request.url))
-    }
   }
 
   // If patient tries to access provider routes
@@ -78,12 +66,6 @@ export function middleware(request: NextRequest) {
   ) {
     console.log('[Middleware] Patient accessing provider route, redirecting');
     return NextResponse.redirect(new URL("/patient-dashboard", request.url))
-  }
-
-  // If provider tries to access patient routes
-  if (isValidToken && userRole === "provider" && isProtectedMainRoute && path.startsWith("/patient-dashboard")) {
-    console.log('[Middleware] Provider accessing patient route, redirecting');
-    return NextResponse.redirect(new URL("/dashboard", request.url))
   }
 
   console.log('[Middleware] Proceeding normally');

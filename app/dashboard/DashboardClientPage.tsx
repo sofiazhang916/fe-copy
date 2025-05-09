@@ -18,6 +18,7 @@ import {
 import { ThemeProvider } from "@/components/theme-provider"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Card, CardContent } from "@/components/ui/card"
+import DoctorSidebar from "@/components/ui/DoctorSidebar"
 import { clearTokens, isAuthenticated, refreshTokens, storeTokens } from "@/lib/token-service"
 
 // Helper function to get cookie by name
@@ -134,41 +135,7 @@ export default function DashboardClientPage() {
 
         <div className="flex">
           {/* Sidebar */}
-          <div className="w-16 min-h-screen bg-white dark:bg-[#2c2c2e] border-r border-[#e5e5ea] dark:border-[#3a3a3c] flex flex-col items-center py-6 gap-8">
-            <div className="flex flex-col items-center gap-8">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-lg h-10 w-10 bg-[#73a9e9]/10 dark:bg-[#73a9e9]/5 text-[#73a9e9]"
-                onClick={() => navigateTo("/scheduling")}
-              >
-                <Calendar className="h-5 w-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-lg h-10 w-10 hover:bg-[#f5f5f7] dark:hover:bg-[#3a3a3c]"
-                onClick={() => navigateTo("/patients")}
-              >
-                <User className="h-5 w-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-lg h-10 w-10 hover:bg-[#f5f5f7] dark:hover:bg-[#3a3a3c]"
-                onClick={() => navigateTo("/messages")}
-              >
-                <MessageSquare className="h-5 w-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-lg h-10 w-10 hover:bg-[#f5f5f7] dark:hover:bg-[#3a3a3c]"
-              >
-                <Flask className="h-5 w-5" />
-              </Button>
-            </div>
-          </div>
+          <DoctorSidebar />
 
           {/* Main content */}
           <div className="flex-1">

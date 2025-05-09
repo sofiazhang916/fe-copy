@@ -16,6 +16,7 @@ import {
 } from "lucide-react"
 import { ThemeProvider } from "@/components/theme-provider"
 import { ThemeToggle } from "@/components/theme-toggle"
+import DoctorSidebar from "@/components/ui/DoctorSidebar"
 import { clearTokens, isAuthenticated, refreshTokens } from "@/lib/token-service"
 
 export default function AppointmentsClientPage() {
@@ -186,40 +187,7 @@ export default function AppointmentsClientPage() {
 
         <div className="flex">
           {/* Sidebar */}
-          <div className="w-16 min-h-screen bg-white dark:bg-[#2c2c2e] border-r border-[#e5e5ea] dark:border-[#3a3a3c] flex flex-col items-center py-6 gap-8">
-            <div className="flex flex-col items-center gap-8">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-lg h-10 w-10 bg-[#73a9e9]/10 dark:bg-[#73a9e9]/5 text-[#73a9e9]"
-              >
-                <Calendar className="h-5 w-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-lg h-10 w-10 hover:bg-[#f5f5f7] dark:hover:bg-[#3a3a3c]"
-                onClick={() => router.push("/patients")}
-              >
-                <User className="h-5 w-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-lg h-10 w-10 hover:bg-[#f5f5f7] dark:hover:bg-[#3a3a3c]"
-                onClick={() => router.push("/messages")}
-              >
-                <MessageSquare className="h-5 w-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-lg h-10 w-10 hover:bg-[#f5f5f7] dark:hover:bg-[#3a3a3c]"
-              >
-                <Flask className="h-5 w-5" />
-              </Button>
-            </div>
-          </div>
+          <DoctorSidebar activePage="calendar" />
 
           {/* Main content */}
           <div className="flex-1">
