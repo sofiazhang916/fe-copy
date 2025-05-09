@@ -149,10 +149,10 @@ export default function PatientDashboardClientPage() {
           </div>
 
           <div>
-            <Card className="bg-white dark:bg-[#2c2c2e] shadow-sm border-0 rounded-xl overflow-hidden h-full">
+            <Card className="bg-white dark:bg-[#2c2c2e] shadow-sm border-0 rounded-xl overflow-hidden">
               <CardContent className="p-0">
                 <img
-                  src="/placeholder.svg?key=416gy"
+                  src="https://images.unsplash.com/photo-1666214280391-8ff5bd3c0bf0?q=80&w=600&h=500&auto=format&fit=crop"
                   alt="Doctor with patient"
                   className="w-full h-full object-cover rounded-xl"
                 />
