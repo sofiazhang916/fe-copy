@@ -17,12 +17,14 @@ export default function LoginForm() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [errorMessage, setErrorMessage] = useState("")
   const { toast } = useToast()
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    setErrorMessage("")
 
     try {
       // Hash password before sending to API
@@ -46,13 +48,30 @@ export default function LoginForm() {
 
       console.log("Login API response status:", response.status)
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        console.error("Login API error:", errorData)
-        throw new Error(errorData.message || "Login failed")
+      const data = await response.json()
+      
+      // Check if the response contains an error message despite a 200 status
+      if (data.statusCode === 400 || data.body) {
+        // Try to parse the body if it's a string
+        let errorBody = data.body;
+        if (typeof data.body === 'string') {
+          try {
+            errorBody = JSON.parse(data.body);
+          } catch (e) {
+            console.error("Failed to parse error body:", e);
+          }
+        }
+        
+        const message = errorBody?.message || "Login failed";
+        setErrorMessage(message);
+        throw new Error(message);
       }
 
-      const data = await response.json()
+      if (!response.ok) {
+        console.error("Login API error:", data)
+        throw new Error(data.message || "Login failed")
+      }
+
       console.log("Login successful, received tokens")
 
       // Store tokens in localStorage
@@ -140,6 +159,12 @@ export default function LoginForm() {
             "Sign in"
           )}
         </Button>
+        
+        {errorMessage && (
+          <div className="mt-2 text-center">
+            <p className="text-red-500 text-sm">{errorMessage}</p>
+          </div>
+        )}
       </form>
 
       <div className="pt-2 text-center">
