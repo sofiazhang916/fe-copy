@@ -62,12 +62,14 @@ export default function VerificationForm() {
 
       toast({
         title: "Verification successful",
-        description: "Your account has been verified. You can now log in.",
+        description: "Your account has been verified. You can now complete your profile.",
       })
 
       // Clear verification email from storage
       localStorage.removeItem("verificationEmail")
-      router.push("/")
+      
+      // Redirect to onboarding page instead of login
+      router.push("/onboarding")
     } catch (error) {
       console.error("Verification error:", error)
       toast({
