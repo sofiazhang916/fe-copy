@@ -82,7 +82,7 @@ export default function PatientSidebar({ currentRoute = "" }) {
         <Button
           variant="ghost"
           className="w-full justify-start px-6 py-2.5 h-auto rounded-none text-[#1d1d1f] dark:text-white hover:bg-[#f5f5f7] dark:hover:bg-[#3a3a3c] font-medium"
-          onClick={() => router.push("/patient-dashboard/health-profile")}
+          onClick={() => router.push("/patient-dashboard/health")}
         >
           <User className="h-5 w-5 mr-3" />
           Health Profile
