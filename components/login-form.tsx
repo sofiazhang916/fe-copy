@@ -12,7 +12,11 @@ import { Loader2 } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { storeTokens } from "@/lib/token-service"
 
-export default function LoginForm() {
+interface LoginFormProps {
+  isDoctor?: boolean;
+}
+
+export default function LoginForm({ isDoctor = false }: LoginFormProps) {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -28,7 +32,37 @@ export default function LoginForm() {
     try {
       console.log("Calling login API with:", { email, password: "[REDACTED]" })
 
-      const response = await fetch("https://8qgxh9alt4.execute-api.us-west-1.amazonaws.com/dev/doctor/login", {
+      if (isDoctor) {
+        // Stub doctor login for now
+        console.log("Doctor login stubbed")
+        // Simulate API delay
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        
+        // Mock successful login
+        const mockTokens = {
+          access_token: "mock_access_token",
+          refresh_token: "mock_refresh_token",
+          id_token: "mock_id_token"
+        }
+        
+        storeTokens(
+          mockTokens.access_token,
+          mockTokens.refresh_token,
+          mockTokens.id_token,
+          email
+        )
+        
+        toast({
+          title: "Login successful",
+          description: "Welcome back to your doctor dashboard",
+        })
+        
+        window.location.href = "/dashboard"
+        return
+      }
+
+      // Regular user login
+      const response = await fetch("https://8qgxh9alt4.execute-api.us-west-1.amazonaws.com/dev/user/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -37,7 +71,7 @@ export default function LoginForm() {
           action: "login",
           credentials: {
             email,
-            password: password, // Send plain password
+            password: password,
           },
         }),
       })
@@ -132,11 +166,11 @@ export default function LoginForm() {
             try {
               // For maximum reliability, use a hard redirect with window.location.href
               // This ensures a full page load and proper middleware evaluation
-              window.location.href = "/dashboard";
+              window.location.href = "/patient-dashboard";
             } catch (e) {
               console.error("Redirect failed:", e)
               // Fallback to router.push
-              router.push("/dashboard")
+              router.push("/patient-dashboard")
             }
           }, 1500)
           
@@ -144,7 +178,7 @@ export default function LoginForm() {
         } catch (error) {
           console.error("Error processing successful login:", error)
           // Continue with redirect anyway
-          window.location.href = "/dashboard"
+          window.location.href = "/patient-dashboard"
           return
         }
       }
@@ -190,7 +224,9 @@ export default function LoginForm() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-medium text-[#1d1d1f] dark:text-white">Atlas</h1>
-          <p className="text-[#86868b] dark:text-[#a1a1a6] mt-1 text-sm">Access your medical dashboard</p>
+          <p className="text-[#86868b] dark:text-[#a1a1a6] mt-1 text-sm">
+            {isDoctor ? "Access your doctor dashboard" : "Access your medical dashboard"}
+          </p>
         </div>
         <ThemeToggle />
       </div>
@@ -255,7 +291,7 @@ export default function LoginForm() {
       <div className="pt-2 text-center">
         <p className="text-[#86868b] dark:text-[#a1a1a6] text-sm">
           Don't have an account?{" "}
-          <Link href="/signup" className="text-[#73a9e9] hover:text-[#5a9ae6]">
+          <Link href={isDoctor ? "/doctor-signup" : "/signup"} className="text-[#73a9e9] hover:text-[#5a9ae6]">
             Create account
           </Link>
         </p>

@@ -7,9 +7,8 @@ const inter = Inter({ subsets: ["latin"] })
 
 // Update the metadata to include AI
 export const metadata: Metadata = {
-  title: "Atlas AI | Healthcare Platform",
-  description: "A modern AI-powered healthcare platform for medical professionals",
-    generator: 'v0.dev'
+  title: "Atlas | Sign In",
+  description: "Sign in to your Atlas healthcare platform account",
 }
 
 export default function RootLayout({
@@ -19,7 +18,6 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head />
       <body className={inter.className}>{children}</body>
     </html>
   )
