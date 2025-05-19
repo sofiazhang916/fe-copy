@@ -13,19 +13,41 @@ import {
   ChevronLeft,
   ChevronRight,
   Plus,
+  AlertCircle,
 } from "lucide-react"
 import { ThemeProvider } from "@/components/theme-provider"
 import { ThemeToggle } from "@/components/theme-toggle"
 import DoctorSidebar from "@/components/ui/DoctorSidebar"
 import { clearTokens, isAuthenticated, refreshTokens } from "@/lib/token-service"
+import { 
+  getDailyCalendar, 
+  getWeeklyCalendar, 
+  getMonthlyCalendar,
+  getPendingAppointments,
+  Appointment
+} from "@/lib/calendar-service"
 
 export default function AppointmentsClientPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [showDemoNotice, setShowDemoNotice] = useState(true)
   const [viewMode, setViewMode] = useState<"month" | "week" | "day" | "list">("week")
   const [currentDate, setCurrentDate] = useState(new Date())
+  const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [weeklyAppointments, setWeeklyAppointments] = useState<{[date: string]: Appointment[]}>({})
+  const [monthlyAppointments, setMonthlyAppointments] = useState<{[date: string]: Appointment[]}>({})
+  const [pendingAppointments, setPendingAppointments] = useState<Appointment[]>([])
+  const [nextCursor, setNextCursor] = useState<string | null>(null)
+  const [hasMore, setHasMore] = useState(false)
+  const [isAppointmentsLoading, setIsAppointmentsLoading] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
+
+  // Ensure doctorId is set for demo - would normally come from auth
+  useEffect(() => {
+    if (!localStorage.getItem("doctorId")) {
+      localStorage.setItem("doctorId", "123e4567-e89b-12d3-a456-426614174000")
+    }
+  }, [])
 
   useEffect(() => {
     const initializePage = async () => {
@@ -54,6 +76,89 @@ export default function AppointmentsClientPage() {
 
     initializePage()
   }, [router, toast])
+
+  // Load appointments when date or view mode changes
+  useEffect(() => {
+    if (isLoading) return
+
+    const fetchAppointments = async () => {
+      setIsAppointmentsLoading(true)
+      try {
+        if (viewMode === "day") {
+          const result = await getDailyCalendar(currentDate)
+          setAppointments(result.data.appointments)
+        } else if (viewMode === "week") {
+          // Get start of week (Sunday)
+          const startOfWeek = new Date(currentDate)
+          startOfWeek.setDate(currentDate.getDate() - currentDate.getDay())
+
+          // Get end of week (Saturday)
+          const endOfWeek = new Date(startOfWeek)
+          endOfWeek.setDate(startOfWeek.getDate() + 6)
+
+          const result = await getWeeklyCalendar(startOfWeek, endOfWeek)
+          
+          // Convert to a map for easier lookup
+          const appointmentMap: {[date: string]: Appointment[]} = {}
+          result.data.weekly_calendar.forEach(day => {
+            appointmentMap[day.date] = day.appointments
+          })
+          
+          setWeeklyAppointments(appointmentMap)
+        } else if (viewMode === "month") {
+          const month = currentDate.getMonth() + 1 // API expects 1-12
+          const year = currentDate.getFullYear()
+          
+          const result = await getMonthlyCalendar(month, year)
+          
+          // Convert to a map for easier lookup
+          const appointmentMap: {[date: string]: Appointment[]} = {}
+          result.data.monthly_calendar.forEach(day => {
+            appointmentMap[day.date] = day.appointments
+          })
+          
+          setMonthlyAppointments(appointmentMap)
+        } else if (viewMode === "list") {
+          const result = await getPendingAppointments()
+          setPendingAppointments(result.appointments)
+          setNextCursor(result.pagination.next_cursor)
+          setHasMore(result.pagination.has_more)
+        }
+      } catch (error) {
+        console.error("Error fetching appointments:", error)
+        toast({
+          title: "Error",
+          description: "Failed to load appointments",
+          variant: "destructive",
+        })
+      } finally {
+        setIsAppointmentsLoading(false)
+      }
+    }
+
+    fetchAppointments()
+  }, [currentDate, viewMode, isLoading, toast])
+
+  const loadMorePendingAppointments = async () => {
+    if (!nextCursor || !hasMore) return
+    
+    try {
+      setIsAppointmentsLoading(true)
+      const result = await getPendingAppointments(nextCursor)
+      setPendingAppointments([...pendingAppointments, ...result.appointments])
+      setNextCursor(result.pagination.next_cursor)
+      setHasMore(result.pagination.has_more)
+    } catch (error) {
+      console.error("Error fetching more appointments:", error)
+      toast({
+        title: "Error",
+        description: "Failed to load more appointments",
+        variant: "destructive",
+      })
+    } finally {
+      setIsAppointmentsLoading(false)
+    }
+  }
 
   const handleLogout = () => {
     // Clear all tokens
@@ -116,6 +221,8 @@ export default function AppointmentsClientPage() {
       return currentDate.toLocaleDateString("en-US", options)
     } else if (viewMode === "month") {
       return currentDate.toLocaleDateString("en-US", { month: "long", year: "numeric" })
+    } else if (viewMode === "list") {
+      return "Patient Queue"
     }
 
     return currentDate.toLocaleDateString("en-US", options)
@@ -123,8 +230,11 @@ export default function AppointmentsClientPage() {
 
   const generateTimeSlots = () => {
     const timeSlots = []
-    for (let hour = 0; hour < 12; hour++) {
-      timeSlots.push(`${hour === 0 ? 12 : hour}:30am`)
+    for (let hour = 9; hour < 18; hour++) {
+      const hourFormatted = hour % 12 === 0 ? 12 : hour % 12
+      const amPm = hour < 12 ? 'am' : 'pm'
+      timeSlots.push(`${hourFormatted}:00${amPm}`)
+      timeSlots.push(`${hourFormatted}:30${amPm}`)
     }
     return timeSlots
   }
@@ -139,6 +249,7 @@ export default function AppointmentsClientPage() {
       day.setDate(startOfWeek.getDate() + i)
       days.push({
         date: day,
+        formattedDate: day.toISOString().split('T')[0], // YYYY-MM-DD format for API
         dayName: day.toLocaleDateString("en-US", { weekday: "short" }),
         dayNumber: day.getDate(),
         monthNumber: day.getMonth() + 1,
@@ -147,6 +258,249 @@ export default function AppointmentsClientPage() {
     }
 
     return days
+  }
+
+  const renderWeekView = () => {
+    const timeSlots = generateTimeSlots()
+    const weekDays = generateWeekDays()
+    
+    return (
+      <div className="overflow-x-auto">
+        <div>
+          {/* Days header */}
+          <div className="grid grid-cols-8 border-b border-[#e5e5ea] dark:border-[#3a3a3c]">
+            <div className="p-3 text-sm font-medium text-[#86868b] dark:text-[#a1a1a6] border-r border-[#e5e5ea] dark:border-[#3a3a3c]">
+              all-day
+            </div>
+            {weekDays.map((day, index) => (
+              <div
+                key={index}
+                className={`p-3 text-center ${day.isToday ? "bg-[#73a9e9]/10 dark:bg-[#73a9e9]/5" : ""}`}
+              >
+                <div className="text-sm font-medium">
+                  {day.dayName} {day.monthNumber}/{day.dayNumber}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Time slots */}
+          {timeSlots.map((timeSlot, index) => (
+            <div key={index} className="grid grid-cols-8 border-b border-[#e5e5ea] dark:border-[#3a3a3c]">
+              <div className="p-3 text-xs text-[#86868b] dark:text-[#a1a1a6] border-r border-[#e5e5ea] dark:border-[#3a3a3c]">
+                {timeSlot}
+              </div>
+              {weekDays.map((day, dayIndex) => {
+                const dayAppointments = weeklyAppointments[day.formattedDate]?.filter(appointment => {
+                  return appointment.appointment_time === timeSlot.replace('am', '').replace('pm', '')
+                }) || []
+                
+                return (
+                  <div
+                    key={dayIndex}
+                    className={`p-1 min-h-[50px] border-r border-[#e5e5ea] dark:border-[#3a3a3c] ${
+                      day.isToday ? "bg-[#73a9e9]/5 dark:bg-[#73a9e9]/5" : ""
+                    } relative group`}
+                  >
+                    {dayAppointments.length > 0 ? (
+                      dayAppointments.map((appointment, idx) => (
+                        <div 
+                          key={idx}
+                          className="bg-[#73a9e9]/10 dark:bg-[#73a9e9]/20 p-1 rounded-md mb-1 cursor-pointer hover:bg-[#73a9e9]/20 dark:hover:bg-[#73a9e9]/30 text-xs"
+                        >
+                          <div className="font-medium truncate">{appointment.patient_name}</div>
+                          <div className="truncate text-[#86868b] dark:text-[#a1a1a6]">
+                            {appointment.reason_for_visit.join(", ")}
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="h-full w-full opacity-0 group-hover:opacity-100 flex justify-center">
+                        <button className="text-xs text-[#73a9e9] hover:text-[#5a9ae6] mt-2">+</button>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  const renderMonthView = () => {
+    // Get first day of month
+    const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
+    const startingDayOfWeek = firstDay.getDay() // 0 = Sunday, 1 = Monday, etc.
+    
+    // Get days in month
+    const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate()
+    
+    // Calculate previous month days to show
+    const prevMonthDays = startingDayOfWeek
+    
+    // Generate day cells
+    const dayCells = []
+    let dayCounter = 1
+    const totalCells = Math.ceil((prevMonthDays + daysInMonth) / 7) * 7
+    
+    // Add previous month days
+    for (let i = 0; i < prevMonthDays; i++) {
+      dayCells.push({ day: null, inMonth: false })
+    }
+    
+    // Add current month days
+    for (let i = 1; i <= daysInMonth; i++) {
+      const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), i)
+      const formattedDate = date.toISOString().split('T')[0]
+      const isToday = date.toDateString() === new Date().toDateString()
+      dayCells.push({ 
+        day: i, 
+        inMonth: true, 
+        date: formattedDate, 
+        isToday,
+        appointments: monthlyAppointments[formattedDate] || [] 
+      })
+    }
+    
+    // Add next month days
+    const remainingCells = totalCells - dayCells.length
+    for (let i = 1; i <= remainingCells; i++) {
+      dayCells.push({ day: i, inMonth: false })
+    }
+    
+    // Create rows (weeks)
+    const rows = []
+    for (let i = 0; i < dayCells.length; i += 7) {
+      rows.push(dayCells.slice(i, i + 7))
+    }
+    
+    return (
+      <div className="overflow-auto">
+        <div className="grid grid-cols-7 border-b border-[#e5e5ea] dark:border-[#3a3a3c]">
+          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => (
+            <div key={index} className="p-3 text-center text-sm font-medium">
+              {day}
+            </div>
+          ))}
+        </div>
+        
+        {rows.map((week, weekIndex) => (
+          <div key={weekIndex} className="grid grid-cols-7 border-b border-[#e5e5ea] dark:border-[#3a3a3c]">
+            {week.map((cell, dayIndex) => (
+              <div 
+                key={dayIndex} 
+                className={`p-1 min-h-[120px] border-r border-[#e5e5ea] dark:border-[#3a3a3c] ${
+                  !cell.inMonth ? 'opacity-40' : ''
+                } ${
+                  cell.isToday ? 'bg-[#73a9e9]/10 dark:bg-[#73a9e9]/5' : ''
+                } relative`}
+              >
+                <div className="text-right p-1 text-sm">{cell.day}</div>
+                {cell.inMonth && cell.appointments && cell.appointments.length > 0 && (
+                  <div className="mt-1 space-y-1">
+                    {cell.appointments.map((appointment, idx) => (
+                      <div 
+                        key={idx}
+                        className="bg-[#73a9e9]/10 dark:bg-[#73a9e9]/20 p-1 rounded-md text-xs cursor-pointer hover:bg-[#73a9e9]/20 dark:hover:bg-[#73a9e9]/30"
+                      >
+                        <div className="font-medium truncate">{appointment.appointment_time} • {appointment.patient_name}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  const renderListView = () => {
+    return (
+      <div className="overflow-auto">
+        <div className="mb-4">
+          <h3 className="text-lg font-medium mb-2">Patient Queue</h3>
+          {pendingAppointments.length === 0 && !isAppointmentsLoading ? (
+            <div className="bg-white dark:bg-[#2c2c2e] rounded-lg p-6 text-center border border-[#e5e5ea] dark:border-[#3a3a3c]">
+              <AlertCircle className="h-8 w-8 mx-auto text-[#86868b] dark:text-[#a1a1a6] mb-2" />
+              <p className="text-[#86868b] dark:text-[#a1a1a6]">No pending appointments</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {pendingAppointments.map((appointment, index) => (
+                <div 
+                  key={index}
+                  className="bg-white dark:bg-[#2c2c2e] rounded-lg p-4 border border-[#e5e5ea] dark:border-[#3a3a3c] hover:shadow-md transition-shadow cursor-pointer"
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-medium">{appointment.patient_name}</h4>
+                      <div className="text-sm text-[#86868b] dark:text-[#a1a1a6]">
+                        {appointment.age} • {appointment.gender} • {appointment.insurance_provider}
+                      </div>
+                      <div className="mt-2 text-sm">
+                        <span className="font-medium">Reason:</span> {appointment.reason_for_visit.join(", ")}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="bg-[#73a9e9]/10 dark:bg-[#73a9e9]/20 text-[#73a9e9] py-1 px-2 rounded-md text-sm font-medium">
+                        {appointment.date} • {appointment.appointment_time}
+                      </div>
+                      <div className="text-sm text-[#86868b] dark:text-[#a1a1a6] mt-1">
+                        {appointment.location}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-3 pt-3 border-t border-[#e5e5ea] dark:border-[#3a3a3c] flex justify-end space-x-2">
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      className="bg-white dark:bg-transparent text-[#1d1d1f] dark:text-white border-[#e5e5ea] dark:border-[#3a3a3c]"
+                    >
+                      Decline
+                    </Button>
+                    <Button 
+                      size="sm"
+                      className="bg-[#73a9e9] hover:bg-[#5a9ae6] text-white"
+                    >
+                      Accept
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              
+              {hasMore && (
+                <div className="text-center pt-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={loadMorePendingAppointments}
+                    disabled={isAppointmentsLoading}
+                    className="bg-white dark:bg-[#2c2c2e] border border-[#e5e5ea] dark:border-[#3a3a3c] text-[#1d1d1f] dark:text-white"
+                  >
+                    {isAppointmentsLoading ? (
+                      <>
+                        <div className="mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-current"></div>
+                        Loading...
+                      </>
+                    ) : (
+                      'Load More'
+                    )}
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  const renderDayView = () => {
+    // Implementation of renderDayView
   }
 
   if (isLoading) {
@@ -292,48 +646,19 @@ export default function AppointmentsClientPage() {
                 </div>
               </div>
 
+              {/* Loading state */}
+              {isAppointmentsLoading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-white/50 dark:bg-[#1d1d1f]/50 z-10">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#73a9e9]"></div>
+                </div>
+              )}
+
               {/* Calendar grid */}
               <div className="bg-white dark:bg-[#2c2c2e] rounded-lg shadow-sm border border-[#e5e5ea] dark:border-[#3a3a3c] overflow-hidden">
-                {/* Week view */}
-                {viewMode === "week" && (
-                  <div>
-                    {/* Days header */}
-                    <div className="grid grid-cols-8 border-b border-[#e5e5ea] dark:border-[#3a3a3c]">
-                      <div className="p-3 text-sm font-medium text-[#86868b] dark:text-[#a1a1a6] border-r border-[#e5e5ea] dark:border-[#3a3a3c]">
-                        all-day
-                      </div>
-                      {generateWeekDays().map((day, index) => (
-                        <div
-                          key={index}
-                          className={`p-3 text-center ${day.isToday ? "bg-[#73a9e9]/10 dark:bg-[#73a9e9]/5" : ""}`}
-                        >
-                          <div className="text-sm font-medium">
-                            {day.dayName} {day.monthNumber}/{day.dayNumber}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Time slots */}
-                    {generateTimeSlots().map((timeSlot, index) => (
-                      <div key={index} className="grid grid-cols-8 border-b border-[#e5e5ea] dark:border-[#3a3a3c]">
-                        <div className="p-3 text-xs text-[#86868b] dark:text-[#a1a1a6] border-r border-[#e5e5ea] dark:border-[#3a3a3c]">
-                          {timeSlot}
-                        </div>
-                        {Array(7)
-                          .fill(0)
-                          .map((_, dayIndex) => (
-                            <div
-                              key={dayIndex}
-                              className={`p-1 min-h-[50px] border-r border-[#e5e5ea] dark:border-[#3a3a3c] ${
-                                generateWeekDays()[dayIndex].isToday ? "bg-[#73a9e9]/5 dark:bg-[#73a9e9]/5" : ""
-                              }`}
-                            ></div>
-                          ))}
-                      </div>
-                    ))}
-                  </div>
-                )}
+                {viewMode === "day" && renderDayView()}
+                {viewMode === "week" && renderWeekView()}
+                {viewMode === "month" && renderMonthView()}
+                {viewMode === "list" && renderListView()}
               </div>
 
               {/* Footer */}
