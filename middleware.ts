@@ -22,10 +22,10 @@ export function middleware(request: NextRequest) {
 
   // Client-side links should pass through when already in protected area
   // This prevents logout when navigating within the dashboard
-  if (path.startsWith('/dashboard/') || 
-      path.startsWith('/patients/') || 
-      path.startsWith('/scheduling/') || 
-      path.startsWith('/messages/')) {
+  if (path.startsWith('/doctor-dashboard/') || 
+      path.startsWith('/doctor-dashboard/patients/') || 
+      path.startsWith('/doctor-dashboard/scheduling/') || 
+      path.startsWith('/doctor-dashboard/messages/')) {
     console.log('[Middleware] Sub-navigation in protected area, skipping strict check');
     return NextResponse.next();
   }
@@ -43,10 +43,10 @@ export function middleware(request: NextRequest) {
 
   // Only check for main protected routes at top level, not sub-navigation
   const isProtectedMainRoute = 
-    path === "/dashboard" || 
-    path === "/patients" || 
-    path === "/scheduling" || 
-    path === "/messages";
+    path === "/doctor-dashboard" || 
+    path === "/doctor-dashboard/patients" || 
+    path === "/doctor-dashboard/scheduling" || 
+    path === "/doctor-dashboard/messages";
 
   // If user is not authenticated and trying to access a protected route
   if (!isValidToken && !isPublicPath && isProtectedMainRoute) {
@@ -59,10 +59,10 @@ export function middleware(request: NextRequest) {
     isValidToken &&
     userRole === "patient" &&
     isProtectedMainRoute &&
-    (path.startsWith("/dashboard") ||
-      path.startsWith("/patients") ||
-      path.startsWith("/scheduling") ||
-      path.startsWith("/messages"))
+    (path.startsWith("/doctor-dashboard") ||
+      path.startsWith("/doctor-dashboard/patients") ||
+      path.startsWith("/doctor-dashboard/scheduling") ||
+      path.startsWith("/doctor-dashboard/messages"))
   ) {
     console.log('[Middleware] Patient accessing provider route, redirecting');
     return NextResponse.redirect(new URL("/patient-dashboard", request.url))

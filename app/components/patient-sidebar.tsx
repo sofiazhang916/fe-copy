@@ -91,7 +91,7 @@ export default function PatientSidebar({ currentRoute = "" }) {
         <Button
           variant="ghost"
           className="w-full justify-start px-6 py-2.5 h-auto rounded-none text-[#1d1d1f] dark:text-white hover:bg-[#f5f5f7] dark:hover:bg-[#3a3a3c] font-medium relative"
-          onClick={() => router.push("/patient-dashboard/messages")}
+          onClick={() => router.push("/patient-dashboard/doctor-dashboard/messages")}
         >
           <MessageSquare className="h-5 w-5 mr-3" />
           Messages

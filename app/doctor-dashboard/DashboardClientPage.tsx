@@ -19,7 +19,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Card, CardContent } from "@/components/ui/card"
 import DoctorSidebar from "@/components/ui/DoctorSidebar"
-import { clearTokens, isAuthenticated, refreshTokens, storeTokens } from "@/lib/token-service"
+import { clearTokens } from "@/lib/token-service"
 
 // Helper function to get cookie by name
 function getCookie(name: string) {
@@ -31,8 +31,8 @@ function getCookie(name: string) {
 
 export default function DashboardClientPage() {
   const [isLoading, setIsLoading] = useState(true)
-  const [isRefreshing, setIsRefreshing] = useState(false)
   const [showDemoNotice, setShowDemoNotice] = useState(true)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
   const router = useRouter()
   const { toast } = useToast()
 
@@ -40,27 +40,27 @@ export default function DashboardClientPage() {
     // This function will run once the component is fully mounted
     const initializeDashboard = async () => {
       console.log("Dashboard initializing...");
-      
+
       // Simple authentication check
       const checkAuth = () => {
         const localStorageToken = localStorage.getItem("accessToken");
         const cookieToken = getCookie("accessToken");
-        
+
         console.log("Auth check:", {
           localStorageToken: !!localStorageToken,
           cookieToken: !!cookieToken,
         });
-        
+
         return !!localStorageToken || !!cookieToken;
       };
-      
+
       // Check if authenticated
       if (!checkAuth()) {
         console.log("Not authenticated, redirecting to login");
         router.push("/");
         return;
       }
-      
+
       console.log("Authentication successful");
       setIsLoading(false);
     };
@@ -72,20 +72,20 @@ export default function DashboardClientPage() {
   const handleLogout = () => {
     // Clear all tokens
     clearTokens()
-    
+
     // Additional explicit cookie clearing for maximum reliability
     // This ensures even if token-service cookie clearing fails, we have backup clearing
     const clearCookie = (name: string) => {
       document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
     };
-    
+
     clearCookie("accessToken");
     clearCookie("refreshToken");
     clearCookie("idToken");
     clearCookie("userRole");
-    
+
     console.log("[Logout] Tokens cleared, redirecting to login");
-    
+
     // Force a page reload to the home page
     window.location.href = "/";
   }
@@ -93,7 +93,7 @@ export default function DashboardClientPage() {
   // Custom navigation function that keeps tokens intact
   const navigateTo = (path: string) => {
     console.log(`[Dashboard] Navigating to: ${path}`);
-    
+
     // Use router.push for client-side navigation which preserves the session
     router.push(path);
   };
@@ -114,7 +114,7 @@ export default function DashboardClientPage() {
   return (
     <ThemeProvider>
       <main className="min-h-screen bg-[#f5f5f7] dark:bg-[#1d1d1f] text-[#1d1d1f] dark:text-white">
-        {showDemoNotice && (
+        {/* {showDemoNotice && (
           <div className="w-full bg-[#73a9e9]/10 dark:bg-[#73a9e9]/5 py-3 px-6 flex justify-between items-center">
             <Button
               className="bg-[#73a9e9] hover:bg-[#5a9ae6] text-white rounded-lg h-9 px-4 text-sm font-medium"
@@ -128,47 +128,41 @@ export default function DashboardClientPage() {
               CONNECT WITH US!
             </Button>
           </div>
-        )}
+        )} */}
 
-        <div className="flex">
-          {/* Sidebar */}
-          <DoctorSidebar />
-
-          {/* Main content */}
-          <div className="flex-1">
-            <header className="flex justify-between items-center px-6 py-4 border-b border-[#e5e5ea] dark:border-[#3a3a3c]">
-              <h1 className="text-2xl font-medium text-[#1d1d1f] dark:text-white">Atlas AI</h1>
-              <Button
-                onClick={() => navigateTo("/patient")}
-                className="bg-[#f5f5f7] dark:bg-[#3a3a3c] text-[#1d1d1f] dark:text-white hover:bg-[#e5e5ea] dark:hover:bg-[#4a4a4c] rounded-lg h-9 px-4 text-sm font-medium"
-              >
-                Switch to Patient View
+        <div className="flex-1">
+          {/* Topbar with collapse toggle */}
+          <header className="h-14 flex items-center justify-between px-6 border-b border-[#e5e5ea] dark:border-[#3a3a3c] bg-white dark:bg-[#2c2c2e]">
+            <div className="flex items-center gap-4">
+              <Button variant="ghost" size="icon" className="ml-1" onClick={() => setSidebarCollapsed(prev => !prev)}>
+                {sidebarCollapsed ? <span>&raquo;</span> : <span>&laquo;</span>}
               </Button>
-              <div className="flex gap-4 items-center">
-                <Button
-                  onClick={() => navigateTo("/profile")}
-                  className="bg-[#f5f5f7] dark:bg-[#3a3a3c] text-[#1d1d1f] dark:text-white hover:bg-[#e5e5ea] dark:hover:bg-[#4a4a4c] rounded-lg h-9 px-4 text-sm font-medium"
-                >
-                  <User2 className="mr-2 h-4 w-4" /> My Profile
-                </Button>
-                <ThemeToggle />
-                <Button
-                  onClick={handleLogout}
-                  className="bg-[#f5f5f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white hover:bg-[#e5e5ea] dark:hover:bg-[#3a3a3c] rounded-lg h-9 px-4 text-sm font-medium"
-                >
-                  <LogOut className="mr-2 h-4 w-4" /> Sign out
-                </Button>
-              </div>
-            </header>
+              <button onClick={() => navigateTo("/doctor-dashboard")} className="bg-transparent rounded px-2 py-1">
+                <img src="/logo-atlasai.png" alt="Atlas AI Logo" className="h-6" />
+              </button>
+            </div>
+            <div className="flex gap-4 items-center">
+              <Button onClick={() => navigateTo("/doctor-dashboard/profile")} className="rounded-lg h-9 px-4 text-sm font-medium">
+                <User2 className="mr-2 h-4 w-4" /> My Profile
+              </Button>
+              <ThemeToggle />
+              <Button onClick={handleLogout} className="rounded-lg h-9 px-4 text-sm font-medium">
+                <LogOut className="mr-2 h-4 w-4" /> Sign out
+              </Button>
+            </div>
+          </header>
+
+          <div className="flex flex-1">
+            {/* Sidebar */}
+            <DoctorSidebar collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(prev => !prev)} />
 
             <div className="p-6">
               <h2 className="text-xl font-medium mb-6 text-[#1d1d1f] dark:text-white">DASHBOARD</h2>
-
               {/* Metric cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
                 <Card
                   className="bg-white dark:bg-[#2c2c2e] shadow-sm border-0 rounded-xl overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => navigateTo("/scheduling")}
+                  onClick={() => navigateTo("/doctor-dashboard/scheduling")}
                 >
                   <CardContent className="p-6">
                     <div className="flex items-start gap-4">
@@ -186,7 +180,7 @@ export default function DashboardClientPage() {
 
                 <Card
                   className="bg-white dark:bg-[#2c2c2e] shadow-sm border-0 rounded-xl overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => navigateTo("/messages")}
+                  onClick={() => navigateTo("/doctor-dashboard/messages")}
                 >
                   <CardContent className="p-6">
                     <div className="flex items-start gap-4">
@@ -282,13 +276,13 @@ export default function DashboardClientPage() {
                       <div className="flex flex-col gap-3">
                         <Button
                           className="bg-[#f5f5f7] dark:bg-[#3a3a3c] text-[#1d1d1f] dark:text-white hover:bg-[#e5e5ea] dark:hover:bg-[#4a4a4c] rounded-lg h-10 px-4 text-sm font-medium justify-start"
-                          onClick={() => navigateTo("/patients")}
+                          onClick={() => navigateTo("/doctor-dashboard/patients")}
                         >
                           <Plus className="h-4 w-4 mr-2" /> ADD PATIENT
                         </Button>
                         <Button
                           className="bg-[#f5f5f7] dark:bg-[#3a3a3c] text-[#1d1d1f] dark:text-white hover:bg-[#e5e5ea] dark:hover:bg-[#4a4a4c] rounded-lg h-10 px-4 text-sm font-medium justify-start"
-                          onClick={() => navigateTo("/messages")}
+                          onClick={() => navigateTo("/doctor-dashboard/messages")}
                         >
                           <MessageSquare className="h-4 w-4 mr-2" /> NEW MESSAGE
                         </Button>

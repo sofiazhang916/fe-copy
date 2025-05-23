@@ -85,12 +85,12 @@ export default function LoginForm({ isDoctor = false }: LoginFormProps) {
               console.log("Redirecting to doctor dashboard...");
               
               // Redirect to doctor dashboard
-              window.location.href = "/dashboard";
+              window.location.href = "/doctor-dashboard";
               return;
             } catch (error) {
               console.error("Error processing successful doctor login:", error);
               // Continue with redirect anyway
-              window.location.href = "/dashboard";
+              window.location.href = "/doctor-dashboard";
               return;
             }
           }

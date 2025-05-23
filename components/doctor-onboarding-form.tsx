@@ -248,7 +248,7 @@ export default function DoctorOnboardingForm() {
       })
       
       // Navigate to the dashboard or another page
-      router.push("/dashboard")
+      router.push("/doctor-dashboard")
     } catch (error) {
       console.error("Error saving profile:", error)
       setErrorMessage(error instanceof Error ? error.message : "An error occurred while saving your profile")
