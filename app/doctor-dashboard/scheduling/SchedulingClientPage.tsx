@@ -148,8 +148,46 @@ export default function SchedulingClientPage() {
 
   // genenrate some dummy appointments for testing
   const appointments = [
-    { id: 1, patient: "John Doe", reason: "Check-up", insurance: "Medicare Advantage - Blue Cross", date: new Date(), hour: 9 },
-    { id: 2, patient: "Jane Smith", reason: "Consultation", insurance: "Private Insurance - Aetna", date: new Date(), hour: 14 },
+    {
+      id: 1,
+      patient: "John Doe",
+      reason: "Check-up",
+      insurance: "Medicare Advantage - Blue Cross",
+      date: new Date(), // today
+      hour: 9,
+    },
+    {
+      id: 2,
+      patient: "Jane Smith",
+      reason: "Consultation",
+      insurance: "Private Insurance - Aetna",
+      date: new Date(), // today
+      hour: 14,
+    },
+    {
+      id: 3,
+      patient: "Alex Johnson",
+      reason: "Annual Physical",
+      insurance: "UnitedHealthcare PPO",
+      date: (() => {
+        const d = new Date()
+        d.setDate(d.getDate() + 2) // 2 days from today
+        return d
+      })(),
+      hour: 11,
+    },
+    {
+      id: 4,
+      patient: "Emily Lee",
+      reason: "Flu Symptoms",
+      insurance: "Cigna Health Plan",
+      date: (() => {
+        const d = new Date()
+        d.setDate(d.getDate() - 2) // 2 days before today
+        return d
+      })(),
+      hour: 16,
+    },
   ]
 
   if (isLoading) {
@@ -451,25 +489,28 @@ export default function SchedulingClientPage() {
                       </div>
                     ) : (
                       <div className="divide-y divide-[#e5e5ea] dark:divide-[#3a3a3c]">
-                        {appointments.map(appt => (
-                          <div key={appt.id} className="p-4">
-                            <div className="text-sm font-semibold text-[#1d1d1f] dark:text-white">{appt.patient}</div>
-                            <div className="text-xs text-[#86868b] dark:text-[#a1a1a6]">
-                              {appt.date.toLocaleDateString("en-US", {
-                                weekday: "short",
-                                month: "short",
-                                day: "numeric",
-                                year: "numeric"
-                              })}
+                        {appointments
+                          .slice() // create a shallow copy to avoid mutating original
+                          .sort((a, b) => a.date.getTime() - b.date.getTime()) // sort by date ascending
+                          .map(appt => (
+                            <div key={appt.id} className="p-4">
+                              <div className="text-sm font-semibold text-[#1d1d1f] dark:text-white">{appt.patient}</div>
+                              <div className="text-xs text-[#86868b] dark:text-[#a1a1a6]">
+                                {appt.date.toLocaleDateString("en-US", {
+                                  weekday: "short",
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric"
+                                })}
+                              </div>
+                              <div className="text-xs text-[#86868b] dark:text-[#a1a1a6] mt-1">
+                                Reason: {appt.reason}
+                              </div>
+                              <div className="text-xs text-[#86868b] dark:text-[#a1a1a6]">
+                                Insurance: {appt.insurance}
+                              </div>
                             </div>
-                            <div className="text-xs text-[#86868b] dark:text-[#a1a1a6] mt-1">
-                              Reason: {appt.reason}
-                            </div>
-                            <div className="text-xs text-[#86868b] dark:text-[#a1a1a6]">
-                              Insurance: {appt.insurance}
-                            </div>
-                          </div>
-                        ))}
+                          ))}
                       </div>
                     )
                   )}
