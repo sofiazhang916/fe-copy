@@ -22,10 +22,11 @@ import { clearTokens, isAuthenticated, refreshTokens } from "@/lib/token-service
 
 export default function SchedulingClientPage() {
   const [isLoading, setIsLoading] = useState(true)
-  const [showDemoNotice, setShowDemoNotice] = useState(true)
+  // const [showDemoNotice, setShowDemoNotice] = useState(true)
   const [viewMode, setViewMode] = useState<"month" | "week" | "day" | "list">("week")
   const [currentDate, setCurrentDate] = useState(new Date())
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
+  const [showEventModal, setAddEventModal] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
 
@@ -51,7 +52,6 @@ export default function SchedulingClientPage() {
         setIsLoading(false)
       }
     }
-
     initializePage()
   }, [router, toast])
 
@@ -106,14 +106,24 @@ export default function SchedulingClientPage() {
     return currentDate.toLocaleDateString("en-US", options)
   }
 
-  const generateTimeSlots = () => {
-    const timeSlots = []
-    for (let hour = 0; hour < 12; hour++) {
-      timeSlots.push(`${hour === 0 ? 12 : hour}:30am`)
-    }
-    return timeSlots
+  /* month */
+  const generateMonthGrid = () => {
+    const year = currentDate.getFullYear()
+    const month = currentDate.getMonth()
+    const start = new Date(year, month, 1)
+    const end = new Date(year, month + 1, 0)
+    const startDay = start.getDay()
+    const totalDays = end.getDate()
+
+    const days: (Date | null)[] = []
+    for (let i = 0; i < startDay; i++) days.push(null)
+    for (let i = 1; i <= totalDays; i++) days.push(new Date(year, month, i))
+    while (days.length % 7 !== 0) days.push(null)
+
+    return days
   }
 
+  /* week */
   const generateWeekDays = () => {
     const days = []
     const startOfWeek = new Date(currentDate)
@@ -121,16 +131,26 @@ export default function SchedulingClientPage() {
     for (let i = 0; i < 7; i++) {
       const day = new Date(startOfWeek)
       day.setDate(startOfWeek.getDate() + i)
-      days.push({
-        date: day,
-        dayName: day.toLocaleDateString("en-US", { weekday: "short" }),
-        dayNumber: day.getDate(),
-        monthNumber: day.getMonth() + 1,
-        isToday: day.toDateString() === new Date().toDateString(),
-      })
+      days.push(day)
     }
     return days
   }
+
+  /* day */
+  const generateDayTimeSlots = () => {
+    const timeSlots = []
+    for (let hour = 0; hour < 24; hour++) {
+      const label = hour === 0 ? "12 AM" : hour < 12 ? `${hour} AM` : hour === 12 ? "12 PM" : `${hour - 12} PM`
+      timeSlots.push(label)
+    }
+    return timeSlots
+  }
+
+  // genenrate some dummy appointments for testing
+  const appointments = [
+    { id: 1, patient: "John Doe", reason: "Check-up", insurance: "Medicare Advantage - Blue Cross", date: new Date(), hour: 9 },
+    { id: 2, patient: "Jane Smith", reason: "Consultation", insurance: "Private Insurance - Aetna", date: new Date(), hour: 14 },
+  ]
 
   if (isLoading) {
     return (
@@ -194,11 +214,32 @@ export default function SchedulingClientPage() {
               <div className="p-6">
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-xl font-medium text-[#1d1d1f] dark:text-white">Scheduling Calendar</h2>
-                  <Button className="bg-[#73a9e9] hover:bg-[#5a9ae6] text-white rounded-lg h-9 px-4 text-sm font-medium">
+                  <Button onClick={() => setAddEventModal(true)} className="bg-[#73a9e9] hover:bg-[#5a9ae6] text-white rounded-lg h-9 px-4 text-sm font-medium">
                     <Plus className="mr-2 h-4 w-4" />
                     New Appointment
                   </Button>
                 </div>
+
+                {/* Add new Appointment  */}
+                {showEventModal && (
+                  <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
+                    <div className="bg-white dark:bg-[#2c2c2e] p-6 rounded-lg shadow-xl w-[500px] max-w-full">
+                      <h3 className="text-lg font-semibold mb-4">Add New Event</h3>
+                      <input type="text" placeholder="Title" className="w-full border border-gray-300 dark:border-[#3a3a3c] rounded px-3 py-2 mb-3" />
+                      <input type="datetime-local" className="w-full border border-gray-300 dark:border-[#3a3a3c] rounded px-3 py-2 mb-3" />
+                      <input type="datetime-local" className="w-full border border-gray-300 dark:border-[#3a3a3c] rounded px-3 py-2 mb-3" />
+                      <textarea placeholder="Description" className="w-full border border-gray-300 dark:border-[#3a3a3c] rounded px-3 py-2 mb-3"></textarea>
+                      <div className="flex items-center mb-4">
+                        <span className="text-sm text-[#86868b] dark:text-[#a1a1a6] mr-2">Color</span>
+                        <input type="color" className="h-2 w-full" />
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <Button variant="outline" onClick={() => setAddEventModal(false)}>Cancel</Button>
+                        <Button className="bg-[#73a9e9] text-white">+ Add</Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Calendar controls */}
                 <div className="flex justify-between items-center mb-6">
@@ -281,44 +322,156 @@ export default function SchedulingClientPage() {
 
                 {/* Calendar grid */}
                 <div className="bg-white dark:bg-[#2c2c2e] rounded-lg shadow-sm border border-[#e5e5ea] dark:border-[#3a3a3c] overflow-hidden">
+                  {/* Month view */}
+                  {viewMode === "month" && (
+                    <div className="grid grid-cols-7 text-center">
+                      {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(day => (
+                        <div key={day} className="p-2 text-sm font-medium border-b border-[#e5e5ea] dark:border-[#3a3a3c]">{day}</div>
+                      ))}
+                      {generateMonthGrid().map((day, index) => (
+                        <div
+                          key={index}
+                          className={`h-24 p-2 border-b border-r border-[#e5e5ea] dark:border-[#3a3a3c] relative text-right pr-2 ${day?.toDateString() === new Date().toDateString()
+                            ? "bg-[#73a9e9]/10 dark:bg-[#73a9e9]/10 text-[#73a9e9] font-semibold"
+                            : ""
+                            }`}
+                        >
+                          <span className={`${day?.getMonth() !== currentDate.getMonth() ? "text-gray-400" : ""}`}>
+                            {day?.getDate()}
+                          </span>
+
+                          {day &&
+                            appointments
+                              .filter(a => a.date.toDateString() === day.toDateString())
+                              .map(a => (
+                                <div
+                                  key={a.id}
+                                  className="bg-[#73a9e9] text-white text-xs mt-1 px-1 py-0.5 rounded text-left truncate"
+                                >
+                                  {a.patient}
+                                </div>
+                              ))}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   {/* Week view */}
                   {viewMode === "week" && (
                     <div>
-                      {/* Days header */}
                       <div className="grid grid-cols-8 border-b border-[#e5e5ea] dark:border-[#3a3a3c]">
-                        <div className="p-3 text-sm font-medium text-[#86868b] dark:text-[#a1a1a6] border-r border-[#e5e5ea] dark:border-[#3a3a3c]">
-                          all-day
+                        <div className="p-2 text-sm font-medium text-[#86868b] dark:text-[#a1a1a6] border-r">Time</div>
+                        {generateWeekDays().map((day, index) => {
+                          const isToday = day.toDateString() === new Date().toDateString()
+                          return (
+                            <div
+                              key={index}
+                              className={`p-2 text-sm text-center border-r ${isToday ? "bg-[#e6f0fb] text-[#73a9e9] font-semibold" : ""
+                                }`}
+                            >
+                              {day.toLocaleDateString("en-US", { weekday: "short", month: "numeric", day: "numeric" })}
+                            </div>
+                          )
+                        })}
+                      </div>
+
+                      {/* All-day row
+                      <div className="grid grid-cols-8 border-b border-[#e5e5ea] dark:border-[#3a3a3c] bg-[#f5f5f7] dark:bg-[#3a3a3c]">
+                        <div className="p-2 text-xs text-[#86868b] dark:text-[#a1a1a6] border-r">all-day</div>
+                        {generateWeekDays().map((day, i) => {
+                          const isToday = day.toDateString() === new Date().toDateString()
+                          return (
+                            <div key={i} className={`border-r h-12 ${isToday ? "bg-[#e6f0fb]" : ""}`}></div>
+                          )
+                        })}
+                      </div> */}
+
+                      {/* Time slots */}
+                      {generateDayTimeSlots().map((slot, hourIndex) => (
+                        <div key={hourIndex} className="grid grid-cols-8 border-b border-[#e5e5ea] dark:border-[#3a3a3c]">
+                          <div className="p-2 text-xs text-[#86868b] dark:text-[#a1a1a6] border-r">{slot}</div>
+                          {generateWeekDays().map((day, i) => {
+                            const isToday = day.toDateString() === new Date().toDateString()
+                            const appointment = appointments.find(
+                              (a) =>
+                                a.date.toDateString() === day.toDateString() && a.hour === hourIndex
+                            )
+                            return (
+                              <div key={i} className={`border-r h-12 relative ${isToday ? "bg-[#e6f0fb]" : ""}`}>
+                                {appointment && (
+                                  <div className="absolute inset-1 bg-[#73a9e9] text-white text-xs px-1 py-0.5 rounded">
+                                    {appointment.patient} - {appointment.reason}
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })}
                         </div>
-                        {generateWeekDays().map((day, index) => (
-                          <div
-                            key={index}
-                            className={`p-3 text-center ${day.isToday ? "bg-[#73a9e9]/10 dark:bg-[#73a9e9]/5" : ""}`}
-                          >
-                            <div className="text-sm font-medium">
-                              {day.dayName} {day.monthNumber}/{day.dayNumber}
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Day view */}
+                  {viewMode === "day" && (
+                    <div className="grid" style={{ gridTemplateColumns: "80px 1fr" }}>
+                      <div className="col-span-2 bg-[#f5f5f7] dark:bg-[#2c2c2e] text-center text-sm font-medium py-2 border-b border-[#e5e5ea] dark:border-[#3a3a3c]">
+                        {currentDate.toLocaleDateString("en-US", { weekday: "long" })}
+                      </div>
+                      <div className="text-xs text-[#86868b] dark:text-[#a1a1a6] px-2 py-2 border-r border-[#e5e5ea] dark:border-[#3a3a3c]">
+                        all-day
+                      </div>
+                      <div className="border-b border-[#e5e5ea] dark:border-[#3a3a3c] h-12"></div>
+                      {generateDayTimeSlots().map((slot, index) => {
+                        const appointment = appointments.find(
+                          a => a.date.toDateString() === currentDate.toDateString() && a.hour === index
+                        )
+                        return (
+                          <div key={`row-${index}`} className="contents">
+                            <div className="p-2 text-xs text-[#86868b] dark:text-[#a1a1a6] border-r border-[#e5e5ea] dark:border-[#3a3a3c]">
+                              {slot}
+                            </div>
+                            <div className="border-b border-[#e5e5ea] dark:border-[#3a3a3c] h-10">
+                              {appointment && (
+                                <div className="bg-[#73a9e9] text-white text-xs px-2 py-1 rounded-md">
+                                  {appointment.patient} – {appointment.reason} ({appointment.insurance})
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+
+                  {/* List view */}
+                  {viewMode === "list" && (
+                    appointments.length === 0 ? (
+                      <div className="p-10 text-center text-[#86868b] dark:text-[#a1a1a6] text-sm">
+                        No events to display
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-[#e5e5ea] dark:divide-[#3a3a3c]">
+                        {appointments.map(appt => (
+                          <div key={appt.id} className="p-4">
+                            <div className="text-sm font-semibold text-[#1d1d1f] dark:text-white">{appt.patient}</div>
+                            <div className="text-xs text-[#86868b] dark:text-[#a1a1a6]">
+                              {appt.date.toLocaleDateString("en-US", {
+                                weekday: "short",
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric"
+                              })}
+                            </div>
+                            <div className="text-xs text-[#86868b] dark:text-[#a1a1a6] mt-1">
+                              Reason: {appt.reason}
+                            </div>
+                            <div className="text-xs text-[#86868b] dark:text-[#a1a1a6]">
+                              Insurance: {appt.insurance}
                             </div>
                           </div>
                         ))}
                       </div>
-
-                      {/* Time slots */}
-                      {generateTimeSlots().map((timeSlot, index) => (
-                        <div key={index} className="grid grid-cols-8 border-b border-[#e5e5ea] dark:border-[#3a3a3c]">
-                          <div className="p-3 text-xs text-[#86868b] dark:text-[#a1a1a6] border-r border-[#e5e5ea] dark:border-[#3a3a3c]">
-                            {timeSlot}
-                          </div>
-                          {Array(7)
-                            .fill(0)
-                            .map((_, dayIndex) => (
-                              <div
-                                key={dayIndex}
-                                className={`p-1 min-h-[50px] border-r border-[#e5e5ea] dark:border-[#3a3a3c] ${generateWeekDays()[dayIndex].isToday ? "bg-[#73a9e9]/5 dark:bg-[#73a9e9]/5" : ""
-                                  }`}
-                              ></div>
-                            ))}
-                        </div>
-                      ))}
-                    </div>
+                    )
                   )}
                 </div>
 
