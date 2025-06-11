@@ -12,7 +12,7 @@ import {
 } from "lucide-react"
 import { ThemeProvider } from "@/components/theme-provider"
 import { ThemeToggle } from "@/components/theme-toggle"
-import DoctorSidebar from "@/components/ui/DoctorSidebar"
+import DoctorLayoutWrapper from "@/app/components/doctor-layout"
 import { clearTokens, isAuthenticated, refreshTokens } from "@/lib/token-service"
 import {
   type DoctorProfile,
@@ -29,8 +29,6 @@ export default function ProfileClientPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
-  const [showDemoNotice, setShowDemoNotice] = useState(true)
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
   const [doctorProfile, setDoctorProfile] = useState<DoctorProfile | null>(null)
   const [hasProfile, setHasProfile] = useState(false)
   const router = useRouter()
@@ -141,74 +139,46 @@ export default function ProfileClientPage() {
   }
 
   return (
-    <ThemeProvider>
-      <main className="min-h-screen bg-[#f5f5f7] dark:bg-[#1d1d1f] text-[#1d1d1f] dark:text-white">
-        <div className="flex-1">
-          <header className="h-14 flex items-center justify-between px-6 border-b border-[#e5e5ea] dark:border-[#3a3a3c] bg-white dark:bg-[#2c2c2e]">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon" className="ml-1" onClick={() => setSidebarCollapsed(prev => !prev)}>
-                {sidebarCollapsed ? <span>&raquo;</span> : <span>&laquo;</span>}
+    <DoctorLayoutWrapper>
+      <div className="p-6 w-full">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-medium text-[#1d1d1f] dark:text-white">Doctor Profile</h2>
+          <div className="flex gap-2">
+            {isEditing ? (
+              <Button
+                variant="outline"
+                className="bg-white dark:bg-[#2c2c2e] border border-[#e5e5ea] dark:border-[#3a3a3c] text-[#1d1d1f] dark:text-white hover:bg-[#f5f5f7] dark:hover:bg-[#3a3a3c] rounded-lg"
+                onClick={() => hasProfile ? setIsEditing(false) : router.push("/doctor-dashboard")}
+                disabled={isSaving}
+              >
+                <X className="mr-2 h-4 w-4" /> Cancel
               </Button>
-              <button onClick={() => router.push("/doctor-dashboard")} className="bg-transparent rounded px-2 py-1">
-                <img src="/logo-atlasai.png" alt="Atlas AI Logo" className="h-6" />
-              </button>
-            </div>
-            <div className="flex gap-4 items-center">
-              <Button onClick={() => router.push("/doctor-dashboard/profile")} className="rounded-lg h-9 px-4 text-sm font-medium">
-                <User2 className="mr-2 h-4 w-4" /> My Profile
+            ) : (
+              <Button
+                className="bg-[#73a9e9] hover:bg-[#5a9ae6] text-white rounded-lg h-9 px-4 text-sm font-medium"
+                onClick={() => setIsEditing(true)}
+              >
+                <Edit className="mr-2 h-4 w-4" /> Edit Profile
               </Button>
-              <ThemeToggle />
-              <Button onClick={handleLogout} className="rounded-lg h-9 px-4 text-sm font-medium">
-                <LogOut className="mr-2 h-4 w-4" /> Sign out
-              </Button>
-            </div>
-          </header>
-
-          <div className="flex flex-1">
-            <DoctorSidebar collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(prev => !prev)} activePage="patients" />
-
-            <div className="p-6 w-full">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-medium text-[#1d1d1f] dark:text-white">Doctor Profile</h2>
-                <div className="flex gap-2">
-                  {isEditing ? (
-                    <Button
-                      variant="outline"
-                      className="bg-white dark:bg-[#2c2c2e] border border-[#e5e5ea] dark:border-[#3a3a3c] text-[#1d1d1f] dark:text-white hover:bg-[#f5f5f7] dark:hover:bg-[#3a3a3c] rounded-lg"
-                      onClick={() => hasProfile ? setIsEditing(false) : router.push("/doctor-dashboard")}
-                      disabled={isSaving}
-                    >
-                      <X className="mr-2 h-4 w-4" /> Cancel
-                    </Button>
-                  ) : (
-                    <Button
-                      className="bg-[#73a9e9] hover:bg-[#5a9ae6] text-white rounded-lg h-9 px-4 text-sm font-medium"
-                      onClick={() => setIsEditing(true)}
-                    >
-                      <Edit className="mr-2 h-4 w-4" /> Edit Profile
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-              {doctorProfile && (isEditing ? (
-                <DoctorProfileForm profile={doctorProfile} onSave={handleSaveProfile} isSaving={isSaving} />
-              ) : (
-                <DoctorProfileView profile={doctorProfile} />
-              ))}
-
-              <div className="mt-8 pt-4 border-t border-[#e5e5ea] dark:border-[#3a3a3c] text-center">
-                <p className="text-xs text-[#86868b] dark:text-[#a1a1a6]">
-                  © 2025 Atlas AI • <span className="hover:underline cursor-pointer">Help</span> •
-                  <span className="hover:underline cursor-pointer"> Terms</span> •
-                  <span className="hover:underline cursor-pointer"> Privacy</span> •
-                  <span className="text-[#73a9e9]"> (v1.0.0)</span>
-                </p>
-              </div>
-            </div>
+            )}
           </div>
         </div>
-      </main>
-    </ThemeProvider>
+
+        {doctorProfile && (isEditing ? (
+          <DoctorProfileForm profile={doctorProfile} onSave={handleSaveProfile} isSaving={isSaving} />
+        ) : (
+          <DoctorProfileView profile={doctorProfile} />
+        ))}
+
+        <div className="mt-8 pt-4 border-t border-[#e5e5ea] dark:border-[#3a3a3c] text-center">
+          <p className="text-xs text-[#86868b] dark:text-[#a1a1a6]">
+            © 2025 Atlas AI • <span className="hover:underline cursor-pointer">Help</span> •
+            <span className="hover:underline cursor-pointer"> Terms</span> •
+            <span className="hover:underline cursor-pointer"> Privacy</span> •
+            <span className="text-[#73a9e9]"> (v1.0.0)</span>
+          </p>
+        </div>
+      </div>
+    </DoctorLayoutWrapper>
   )
 }

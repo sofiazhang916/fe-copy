@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import MessagesClientPage from "./MessagesClientPage"
+import MessagesClientPage from "../../../components/pages/MessagesClientPage"
 
 export const metadata: Metadata = {
   title: "Atlas AI | Messages",

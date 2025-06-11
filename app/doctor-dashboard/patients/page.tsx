@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import PatientsClientPage from "./PatientsClientPage"
+import PatientsClientPage from "../../../components/pages/PatientsClientPage"
 
 export const metadata: Metadata = {
   title: "Atlas AI | Patients",

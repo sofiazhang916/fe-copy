@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import SchedulingClientPage from "./SchedulingClientPage"
+import SchedulingClientPage from "../../../components/pages/SchedulingClientPage"
 
 export const metadata: Metadata = {
   title: "Atlas AI | Scheduling",
