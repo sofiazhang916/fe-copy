@@ -1,4 +1,4 @@
-import SignupForm from "@/components/signup-form"
+import SignupForm from "@/components/forms/signup-form"
 import { ThemeProvider } from "@/components/theme-provider"
 import type { Metadata } from "next"
 

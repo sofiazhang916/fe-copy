@@ -31,7 +31,7 @@ export default function PatientHeader() {
           onClick={() => {
             const newRole = toggleUserRole()
             if (newRole === "provider") {
-              router.push("/dashboard")
+              router.push("/doctor-dashboard")
             } else {
               router.push("/patient-dashboard")
             }

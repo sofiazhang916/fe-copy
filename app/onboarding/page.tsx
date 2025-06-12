@@ -1,5 +1,5 @@
 import { ThemeProvider } from "@/components/theme-provider"
-import OnboardingForm from "@/components/onboarding-form"
+import OnboardingForm from "@/components/forms/onboarding-form"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
