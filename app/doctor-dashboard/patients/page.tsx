@@ -183,19 +183,22 @@ export default function PatientsClientPage() {
               </p>
             ) : (
               filteredPatients.map((patient) => (
-                <Card key={patient.id} className="bg-white dark:bg-[#2c2c2e] shadow-sm border-l-4 border-l-[#73a9e9] rounded-lg overflow-hidden">
+                <Card
+                  key={patient.id}
+                  className="bg-white dark:bg-[#2c2c2e] shadow-sm border-l-4 border-l-[#73a9e9] rounded-lg overflow-hidden transform transition-transform duration-300 hover:scale-[1.015]"
+                >
                   <CardContent className="p-6">
                     <div className="flex items-center gap-4">
                       <div className={`h-16 w-16 rounded-full flex items-center justify-center text-lg font-bold ${patient.matchPercentage >= 95
-                          ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
-                          : patient.matchPercentage >= 90
-                            ? "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400"
-                            : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400"
+                        ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
+                        : patient.matchPercentage >= 90
+                          ? "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400"
+                          : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400"
                         }`}>
                         {patient.matchPercentage}%
                       </div>
 
-                    {/* Patient info */}
+                      {/* Patient info */}
                       <div className="flex-1">
                         <div className="flex justify-between items-start">
                           <div>
@@ -208,10 +211,10 @@ export default function PatientsClientPage() {
 
                             <div className="flex flex-wrap gap-2 mt-1">
                               {patient.conditions.map((condition, index) => (
-                              <span
-                                key={index}
-                                className="text-xs bg-[#f5f5f7] dark:bg-[#3a3a3c] text-[#1d1d1f] dark:text-white px-2 py-1 rounded-md"
-                              >
+                                <span
+                                  key={index}
+                                  className="text-xs bg-[#f5f5f7] dark:bg-[#3a3a3c] text-[#1d1d1f] dark:text-white px-2 py-1 rounded-md"
+                                >
                                   {condition}
                                 </span>
                               ))}
@@ -224,12 +227,12 @@ export default function PatientsClientPage() {
                             </div>
 
                             <div className="mt-2 text-sm">
-                            <span
-                              className={`${patient.insuranceStatus === "Verified"
-                                ? "text-green-600 dark:text-green-400"
-                                : "text-yellow-600 dark:text-yellow-400"
-                                }`}
-                            >
+                              <span
+                                className={`${patient.insuranceStatus === "Verified"
+                                  ? "text-green-600 dark:text-green-400"
+                                  : "text-yellow-600 dark:text-yellow-400"
+                                  }`}
+                              >
                                 Insurance {patient.insuranceStatus}
                               </span>
                               <span className="text-[#86868b] dark:text-[#a1a1a6] mx-2">|</span>
@@ -245,17 +248,17 @@ export default function PatientsClientPage() {
                               {formatCurrency(patient.estimatedValue)}
                             </div>
                             <div className="flex gap-2 mt-2">
-                            <Button
-                              size="sm"
-                              className="bg-green-100 hover:bg-green-200 text-green-800 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/30 rounded-md"
-                            >
+                              <Button
+                                size="sm"
+                                className="bg-green-100 hover:bg-green-200 text-green-800 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/30 rounded-md"
+                              >
                                 <Check className="h-4 w-4 mr-1" /> Accept
                               </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="bg-transparent border border-[#e5e5ea] dark:border-[#3a3a3c] text-[#86868b] dark:text-[#a1a1a6] hover:bg-[#f5f5f7] dark:hover:bg-[#3a3a3c] rounded-md"
-                            >
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="bg-transparent border border-[#e5e5ea] dark:border-[#3a3a3c] text-[#86868b] dark:text-[#a1a1a6] hover:bg-[#f5f5f7] dark:hover:bg-[#3a3a3c] rounded-md"
+                              >
                                 <X className="h-4 w-4 mr-1" /> Decline
                               </Button>
                             </div>
@@ -264,7 +267,7 @@ export default function PatientsClientPage() {
                       </div>
                     </div>
 
-                  {/* Location */}
+                    {/* Location */}
                     <div className="mt-2 text-sm text-[#86868b] dark:text-[#a1a1a6] flex items-center">
                       <MapPin className="h-3 w-3 mr-1" /> {patient.location}
                     </div>
