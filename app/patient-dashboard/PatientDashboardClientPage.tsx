@@ -11,7 +11,7 @@ import {
 import { ThemeProvider } from "@/components/theme-provider"
 import { Card, CardContent } from "@/components/ui/card"
 import { clearTokens, isAuthenticated, refreshTokens } from "@/lib/token-service"
-import PatientLayout from "../components/patient-layout"
+import PatientLayout from "@/components/layouts/patient-layout"
 
 export default function PatientDashboardClientPage() {
   const [isLoading, setIsLoading] = useState(true)

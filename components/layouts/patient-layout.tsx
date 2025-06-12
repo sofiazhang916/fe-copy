@@ -2,8 +2,8 @@
 
 import React from "react"
 import { ThemeProvider } from "@/components/theme-provider"
-import PatientSidebar from "@/app/components/patient-sidebar"
-import PatientHeader from "@/app/components/patient-header"
+import PatientSidebar from "@/components/layouts/patient-sidebar"
+import PatientHeader from "@/components/layouts/patient-header"
 
 interface PatientLayoutProps {
   children: React.ReactNode

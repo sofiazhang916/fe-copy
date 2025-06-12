@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import PatientLayout from "@/app/components/patient-layout";
+import PatientLayout from "@/components/layouts/patient-layout";
 
 export default function FindADoctorPage() {
   return (

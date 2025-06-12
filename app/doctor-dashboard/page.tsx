@@ -3,7 +3,7 @@ export const metadata = {
   description: "Manage your healthcare practice with Atlas",
 }
 
-import DashboardClientPage from "../../components/pages/DashboardClientPage"
+import DashboardClientPage from "./DoctorDashboardClientPage"
 
 export default function DashboardPage() {
   return <DashboardClientPage />

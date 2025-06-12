@@ -7,7 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LogOut, MoreVertical, User2 } from "lucide-react";
-import DoctorSidebar from "@/app/components/doctor-Sidebar";
+import DoctorSidebar from "@/components/layouts/doctor-sidebar";
 import { clearTokens } from "@/lib/token-service";
 import { ChevronRight, ChevronLeft } from "lucide-react";
 

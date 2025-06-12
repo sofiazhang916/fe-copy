@@ -1,5 +1,5 @@
 import { ThemeProvider } from "@/components/theme-provider"
-import DoctorOnboardingForm from "@/components/doctor-onboarding-form"
+import DoctorOnboardingForm from "@/components/forms/doctor-onboarding-form"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {

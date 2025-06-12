@@ -12,7 +12,7 @@ import {
   Clock,
 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
-import DoctorLayoutWrapper from "@/app/components/doctor-layout"
+import DoctorLayoutWrapper from "@/components/layouts/doctor-layout"
 
 // Helper: get cookie
 function getCookie(name: string) {
@@ -55,7 +55,7 @@ export default function DashboardClientPage() {
   }
 
   return (
-    <DoctorLayoutWrapper activePage="calendar">
+    <DoctorLayoutWrapper>
       <div className="flex-1">
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">

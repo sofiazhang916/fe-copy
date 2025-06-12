@@ -1,4 +1,4 @@
-import VerificationForm from "@/components/verification-form"
+import VerificationForm from "@/components/forms/verification-form"
 import { ThemeProvider } from "@/components/theme-provider"
 import type { Metadata } from "next"
 

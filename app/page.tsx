@@ -1,6 +1,6 @@
 "use client"
 
-import LoginForm from "@/components/login-form"
+import LoginForm from "@/components/forms/login-form"
 import { ThemeProvider } from "@/components/theme-provider"
 import { useState } from "react"
 import { cn } from "@/lib/utils"
