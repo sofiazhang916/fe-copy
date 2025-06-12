@@ -15,9 +15,9 @@ import {
   Send,
   User2,
 } from "lucide-react"
-import { ThemeProvider } from "@/components/theme-provider"
 import { clearTokens, isAuthenticated, refreshTokens } from "@/lib/token-service"
 import DoctorLayoutWrapper from "@/components/layouts/doctor-layout"
+import { ThemeProvider } from "@/components/theme-provider"
 
 // Mock conversation data
 const conversations = [
@@ -137,6 +137,11 @@ export default function MessagesClientPage() {
     setNewMessage(templates[templateNumber - 1] || "")
   }
 
+  const shownConversations = conversations.filter((c) =>
+    c.patient.name.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+
   if (isLoading) {
     return (
       <ThemeProvider>
@@ -181,28 +186,31 @@ export default function MessagesClientPage() {
               </div>
 
               <div className="overflow-y-auto h-[calc(100%-130px)]">
-                {conversations.map((conversation) => (
-                  <div
-                    key={conversation.id}
-                    className={`p-4 border-b border-[#e5e5ea] dark:border-[#3a3a3c] cursor-pointer hover:bg-[#f5f5f7] dark:hover:bg-[#3a3a3c] ${selectedConversation.id === conversation.id ? "bg-[#f5f5f7] dark:bg-[#3a3a3c]" : ""
-                      }`}
-                    onClick={() => setSelectedConversation(conversation)}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-[#e5e5ea] dark:bg-[#3a3a3c] flex items-center justify-center text-[#1d1d1f] dark:text-white font-medium">
-                        {conversation.patient.initials}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-[#1d1d1f] dark:text-white truncate">
-                          {conversation.patient.name}
-                        </h4>
-                        <p className="text-sm text-[#86868b] dark:text-[#a1a1a6] truncate">
-                          {conversation.preview}
-                        </p>
+                {shownConversations.length === 0 ? (
+                  <p className="p-4 text-sm text-[#86868b] dark:text-[#a1a1a6]">No patients found.</p>
+                ) : (
+                  shownConversations.map((conversation) => (
+                    <div
+                      key={conversation.id}
+                      className={`p-4 border-b border-[#e5e5ea] dark:border-[#3a3a3c] cursor-pointer hover:bg-[#f5f5f7] dark:hover:bg-[#3a3a3c] ${selectedConversation.id === conversation.id ? "bg-[#f5f5f7] dark:bg-[#3a3a3c]" : ""}`}
+                      onClick={() => setSelectedConversation(conversation)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-[#e5e5ea] dark:bg-[#3a3a3c] flex items-center justify-center text-[#1d1d1f] dark:text-white font-medium">
+                          {conversation.patient.initials}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-[#1d1d1f] dark:text-white truncate">
+                            {conversation.patient.name}
+                          </h4>
+                          <p className="text-sm text-[#86868b] dark:text-[#a1a1a6] truncate">
+                            {conversation.preview}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
 
               <div className="p-4 border-t border-[#e5e5ea] dark:border-[#3a3a3c]">
