@@ -1,31 +1,46 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import DoctorLayoutWrapper from "@/components/layouts/doctor-layout"
 import { useToast } from "@/hooks/use-toast"
 import {
-  LogOut,
-  Calendar,
-  MessageSquare,
   FlaskRoundIcon as Flask,
-  User,
   ChevronLeft,
   ChevronRight,
   Plus,
-  User2,
 } from "lucide-react"
 import { ThemeProvider } from "@/components/theme-provider"
 import { clearTokens, isAuthenticated, refreshTokens } from "@/lib/token-service"
+const DOCTOR_ID = "b979d98e-8011-7080-ec48-3e9d0ce6908f"
 
 export default function SchedulingClientPage() {
   const [isLoading, setIsLoading] = useState(true)
-  const [viewMode, setViewMode] = useState<"month" | "week" | "day" | "list">("week")
+  const [viewMode, setViewMode] = useState<"month" | "week" | "day" | "list">(() => {
+    if (typeof window !== "undefined") {
+      return (localStorage.getItem("viewMode") as "month" | "week" | "day" | "list") || "week"
+    }
+    return "week"
+  })
   const [currentDate, setCurrentDate] = useState(new Date())
   const [showEventModal, setAddEventModal] = useState(false)
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+  const [newEventStart, setNewEventStart] = useState("")
+  const [newEventColor, setNewEventColor] = useState("#73a9e9")
+  const colorInputRef = useRef<HTMLInputElement>(null)
+  const openColorPicker = () => {
+    colorInputRef.current?.click()
+  }
+  const [appointments, setAppointments] = useState<any[]>([])
+
   const router = useRouter()
   const { toast } = useToast()
+  const handleChangeViewMode = (mode: "month" | "week" | "day" | "list") => {
+    setViewMode(mode)
+    localStorage.setItem("viewMode", mode)
+  }
+  const [searchQuery, setSearchQuery] = useState("")
 
   useEffect(() => {
     const initializePage = async () => {
@@ -51,6 +66,77 @@ export default function SchedulingClientPage() {
     }
     initializePage()
   }, [router, toast])
+
+
+  useEffect(() => {
+    const fetchAppointments = async () => {
+      try {
+        let url = ""
+        const yyyy = currentDate.getFullYear()
+        const mm = currentDate.getMonth() + 1
+        const dd = currentDate.getDate()
+
+        if (viewMode === "day") {
+          const dayStr = `${yyyy}-${String(mm).padStart(2, "0")}-${String(dd).padStart(2, "0")}`
+          url = `https://sales.getatlasai.co/profile-service/api/v1/calendar/view-daily-calendar/?doctor_id=${DOCTOR_ID}&date=${dayStr}`
+
+        } else if (viewMode === "week") {
+          const startOfWeek = new Date(currentDate)
+          startOfWeek.setDate(currentDate.getDate() - currentDate.getDay())
+          const endOfWeek = new Date(startOfWeek)
+          endOfWeek.setDate(startOfWeek.getDate() + 6)
+
+          const startStr = `${startOfWeek.getFullYear()}/${String(startOfWeek.getMonth() + 1).padStart(2, "0")}/${String(startOfWeek.getDate()).padStart(2, "0")}`
+          const endStr = `${endOfWeek.getFullYear()}/${String(endOfWeek.getMonth() + 1).padStart(2, "0")}/${String(endOfWeek.getDate()).padStart(2, "0")}`
+
+          url = `https://sales.getatlasai.co/profile-service/api/v1/calendar/view-weekly-calendar/?doctor_id=${DOCTOR_ID}&start_date=${startStr}&end_date=${endStr}`
+
+        } else if (viewMode === "month") {
+          url = `https://sales.getatlasai.co/profile-service/api/v1/calendar/view-monthly-calendar/?doctor_id=${DOCTOR_ID}&month=${mm}&year=${yyyy}`
+
+        } else if (viewMode === "list") {
+          url = `https://sales.getatlasai.co/profile-service/api/v1/appointment/view-appointments-list/${DOCTOR_ID}`
+        }
+
+        const response = await fetch(url)
+        if (!response.ok) throw new Error("Failed to fetch appointments")
+
+        const data = await response.json()
+        const appts = (data.appointments || data.data?.appointments
+          || data.data?.weekly_calendar?.flatMap((d: { date: string; appointments: any[] }) =>
+            d.appointments.map(a => ({ ...a, date: d.date }))
+          )
+          || data.data?.monthly_calendar?.flatMap((d: { date: string; appointments: any[] }) =>
+            d.appointments.map(a => ({ ...a, date: d.date }))
+          ) || [])
+
+        const parsed = appts.map((a: any, index: number) => {
+          const [hourStr, minStr] = (a.appointment_time).split(":")
+          const hour = parseInt(hourStr)
+          const minute = parseInt(minStr)
+
+          const rawDate = a.date || data.data?.date || `${yyyy}-${String(mm).padStart(2, "0")}-${String(dd).padStart(2, "0")}`
+          const [year, month, day] = rawDate.split("-").map(Number)
+          const date = new Date(year, month - 1, day, hour, minute)
+
+          return {
+            id: a.appointment_id || index,
+            patient: a.patient_name,
+            reason: a.reason_for_visit?.join(", ") || "General",
+            date,
+            hour,
+            minute,
+          }
+        })
+
+        setAppointments(parsed)
+      } catch (err) {
+        console.error("Error loading appointments:", err)
+      }
+    }
+
+    fetchAppointments()
+  }, [viewMode, currentDate])
 
   const handleLogout = () => {
     clearTokens()
@@ -135,57 +221,22 @@ export default function SchedulingClientPage() {
 
   /* day */
   const generateDayTimeSlots = () => {
-    const timeSlots = []
+    const slots = []
     for (let hour = 0; hour < 24; hour++) {
-      const label = hour === 0 ? "12 AM" : hour < 12 ? `${hour} AM` : hour === 12 ? "12 PM" : `${hour - 12} PM`
-      timeSlots.push(label)
+      for (let minute of [0, 30]) {
+        const labelHour = hour % 12 === 0 ? 12 : hour % 12
+        const labelMin = minute === 0 ? "" : ":30"
+        const period = hour < 12 ? "AM" : "PM"
+        slots.push({ hour, minute, label: `${labelHour}${labelMin} ${period}` })
+      }
     }
-    return timeSlots
+    return slots
   }
 
-  // genenrate some dummy appointments for testing
-  const appointments = [
-    {
-      id: 1,
-      patient: "John Doe",
-      reason: "Check-up",
-      insurance: "Medicare Advantage - Blue Cross",
-      date: new Date(), // today
-      hour: 9,
-    },
-    {
-      id: 2,
-      patient: "Jane Smith",
-      reason: "Consultation",
-      insurance: "Private Insurance - Aetna",
-      date: new Date(), // today
-      hour: 14,
-    },
-    {
-      id: 3,
-      patient: "Alex Johnson",
-      reason: "Annual Physical",
-      insurance: "UnitedHealthcare PPO",
-      date: (() => {
-        const d = new Date()
-        d.setDate(d.getDate() + 2) // 2 days from today
-        return d
-      })(),
-      hour: 11,
-    },
-    {
-      id: 4,
-      patient: "Emily Lee",
-      reason: "Flu Symptoms",
-      insurance: "Cigna Health Plan",
-      date: (() => {
-        const d = new Date()
-        d.setDate(d.getDate() - 2) // 2 days before today
-        return d
-      })(),
-      hour: 16,
-    },
-  ]
+  const filteredAppointments = appointments.filter(a =>
+    a.patient.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
 
   if (isLoading) {
     return (
@@ -198,6 +249,16 @@ export default function SchedulingClientPage() {
         </main>
       </ThemeProvider>
     )
+  }
+
+  function formatAsDatetimeLocal(date: Date): string {
+    const pad = (n: number) => n.toString().padStart(2, '0')
+    const yyyy = date.getFullYear()
+    const mm = pad(date.getMonth() + 1)
+    const dd = pad(date.getDate())
+    const hh = pad(date.getHours())
+    const min = pad(date.getMinutes())
+    return `${yyyy}-${mm}-${dd}T${hh}:${min}`
   }
 
   return (
@@ -219,13 +280,34 @@ export default function SchedulingClientPage() {
               <div className="bg-white dark:bg-[#2c2c2e] p-6 rounded-lg shadow-xl w-[500px] max-w-full">
                 <h3 className="text-lg font-semibold mb-4">Add New Event</h3>
                 <input type="text" placeholder="Title" className="w-full border border-gray-300 dark:border-[#3a3a3c] rounded px-3 py-2 mb-3" />
-                <input type="datetime-local" className="w-full border border-gray-300 dark:border-[#3a3a3c] rounded px-3 py-2 mb-3" />
+                <input
+                  type="datetime-local"
+                  className="w-full border border-gray-300 dark:border-[#3a3a3c] rounded px-3 py-2 mb-3"
+                  value={newEventStart}
+                  onChange={(e) => setNewEventStart(e.target.value)}
+                />
                 <input type="datetime-local" className="w-full border border-gray-300 dark:border-[#3a3a3c] rounded px-3 py-2 mb-3" />
                 <textarea placeholder="Description" className="w-full border border-gray-300 dark:border-[#3a3a3c] rounded px-3 py-2 mb-3"></textarea>
-                <div className="flex items-center mb-4">
-                  <span className="text-sm text-[#86868b] dark:text-[#a1a1a6] mr-2">Color</span>
-                  <input type="color" className="h-2 w-full" />
+
+                {/* Color picker section */}
+                <div className="mb-4">
+                  <label className="text-sm text-[#86868b] dark:text-[#a1a1a6] block mb-2">Color</label>
+                  {/* Hidden native color input */}
+                  <input
+                    type="color"
+                    ref={colorInputRef}
+                    value={newEventColor}
+                    onChange={(e) => setNewEventColor(e.target.value)}
+                    className="hidden"
+                  />
+                  {/* Clickable color bar */}
+                  <div
+                    onClick={openColorPicker}
+                    className="w-full h-10 rounded-md border border-[#e5e5ea] dark:border-[#3a3a3c] cursor-pointer"
+                    style={{ backgroundColor: newEventColor }}
+                  />
                 </div>
+
                 <div className="flex justify-end gap-2">
                   <Button variant="outline" onClick={() => setAddEventModal(false)}>Cancel</Button>
                   <Button className="bg-[#73a9e9] text-white">+ Add</Button>
@@ -273,7 +355,7 @@ export default function SchedulingClientPage() {
                   ? "bg-[#73a9e9] hover:bg-[#5a9ae6] text-white"
                   : "bg-white dark:bg-[#2c2c2e] border border-[#e5e5ea] dark:border-[#3a3a3c] text-[#1d1d1f] dark:text-white hover:bg-[#f5f5f7] dark:hover:bg-[#3a3a3c]"
                   }`}
-                onClick={() => setViewMode("month")}
+                onClick={() => handleChangeViewMode("month")}
               >
                 Month
               </Button>
@@ -284,7 +366,7 @@ export default function SchedulingClientPage() {
                   ? "bg-[#73a9e9] hover:bg-[#5a9ae6] text-white"
                   : "bg-white dark:bg-[#2c2c2e] border border-[#e5e5ea] dark:border-[#3a3a3c] text-[#1d1d1f] dark:text-white hover:bg-[#f5f5f7] dark:hover:bg-[#3a3a3c]"
                   }`}
-                onClick={() => setViewMode("week")}
+                onClick={() => handleChangeViewMode("week")}
               >
                 Week
               </Button>
@@ -295,7 +377,7 @@ export default function SchedulingClientPage() {
                   ? "bg-[#73a9e9] hover:bg-[#5a9ae6] text-white"
                   : "bg-white dark:bg-[#2c2c2e] border border-[#e5e5ea] dark:border-[#3a3a3c] text-[#1d1d1f] dark:text-white hover:bg-[#f5f5f7] dark:hover:bg-[#3a3a3c]"
                   }`}
-                onClick={() => setViewMode("day")}
+                onClick={() => handleChangeViewMode("day")}
               >
                 Day
               </Button>
@@ -306,7 +388,7 @@ export default function SchedulingClientPage() {
                   ? "bg-[#73a9e9] hover:bg-[#5a9ae6] text-white"
                   : "bg-white dark:bg-[#2c2c2e] border border-[#e5e5ea] dark:border-[#3a3a3c] text-[#1d1d1f] dark:text-white hover:bg-[#f5f5f7] dark:hover:bg-[#3a3a3c]"
                   }`}
-                onClick={() => setViewMode("list")}
+                onClick={() => handleChangeViewMode("list")}
               >
                 List
               </Button>
@@ -325,10 +407,18 @@ export default function SchedulingClientPage() {
                 {generateMonthGrid().map((day, index) => (
                   <div
                     key={index}
-                    className={`h-24 p-2 border-b border-r border-[#e5e5ea] dark:border-[#3a3a3c] relative text-right pr-2 ${day?.toDateString() === new Date().toDateString()
-                      ? "bg-[#73a9e9]/10 dark:bg-[#73a9e9]/10 text-[#73a9e9] font-semibold"
-                      : ""
+                    className={`h-32 p-2 border-b border-r relative text-right pr-2 cursor-pointer hover:bg-[#f0f4ff] dark:hover:bg-[#2e2e30] 
+                      ${day?.toDateString() === new Date().toDateString()
+                        ? "bg-[#73a9e9]/10 dark:bg-[#73a9e9]/10 text-[#73a9e9] font-semibold"
+                        : ""
                       }`}
+                    onClick={() => {
+                      if (day) {
+                        setSelectedDate(day)
+                        setNewEventStart(formatAsDatetimeLocal(day))
+                        setAddEventModal(true)
+                      }
+                    }}
                   >
                     <span className={`${day?.getMonth() !== currentDate.getMonth() ? "text-gray-400" : ""}`}>
                       {day?.getDate()}
@@ -369,29 +459,44 @@ export default function SchedulingClientPage() {
                   })}
                 </div>
 
-                {/* All-day row
-                      <div className="grid grid-cols-8 border-b border-[#e5e5ea] dark:border-[#3a3a3c] bg-[#f5f5f7] dark:bg-[#3a3a3c]">
-                        <div className="p-2 text-xs text-[#86868b] dark:text-[#a1a1a6] border-r">all-day</div>
-                        {generateWeekDays().map((day, i) => {
-                          const isToday = day.toDateString() === new Date().toDateString()
-                          return (
-                            <div key={i} className={`border-r h-12 ${isToday ? "bg-[#e6f0fb]" : ""}`}></div>
-                          )
-                        })}
-                      </div> */}
+                {/* All-day row */}
+                {/* <div className="grid grid-cols-8 border-b border-[#e5e5ea] dark:border-[#3a3a3c] bg-[#f5f5f7] dark:bg-[#3a3a3c]">
+                  <div className="p-2 text-xs text-[#86868b] dark:text-[#a1a1a6] border-r">all-day</div>
+                  {generateWeekDays().map((day, i) => {
+                    const isToday = day.toDateString() === new Date().toDateString()
+                    return (
+                      <div key={i} className={`border-r h-12 ${isToday ? "bg-[#e6f0fb]" : ""}`}></div>
+                    )
+                  })}
+                </div> */}
 
                 {/* Time slots */}
                 {generateDayTimeSlots().map((slot, hourIndex) => (
                   <div key={hourIndex} className="grid grid-cols-8 border-b border-[#e5e5ea] dark:border-[#3a3a3c]">
-                    <div className="p-2 text-xs text-[#86868b] dark:text-[#a1a1a6] border-r">{slot}</div>
+                    <div className="p-2 text-xs text-[#86868b] dark:text-[#a1a1a6] border-r border-[#e5e5ea] dark:border-[#3a3a3c]">
+                      {slot.label}
+                    </div>
                     {generateWeekDays().map((day, i) => {
                       const isToday = day.toDateString() === new Date().toDateString()
                       const appointment = appointments.find(
                         (a) =>
-                          a.date.toDateString() === day.toDateString() && a.hour === hourIndex
+                          a.date.toDateString() === day.toDateString() &&
+                          a.hour === slot.hour &&
+                          a.minute === slot.minute
                       )
                       return (
-                        <div key={i} className={`border-r h-12 relative ${isToday ? "bg-[#e6f0fb]" : ""}`}>
+                        <div
+                          key={i}
+                          className={`border-r h-12 relative cursor-pointer hover:bg-[#f0f4ff] dark:hover:bg-[#2e2e30]
+                            ${isToday ? "bg-[#e6f0fb]" : ""}`}
+                          onClick={() => {
+                            const slotDate = new Date(day)
+                            slotDate.setHours(hourIndex, 0, 0, 0)
+                            setSelectedDate(slotDate)
+                            setNewEventStart(formatAsDatetimeLocal(slotDate))
+                            setAddEventModal(true)
+                          }}
+                        >
                           {appointment && (
                             <div className="absolute inset-1 bg-[#73a9e9] text-white text-xs px-1 py-0.5 rounded">
                               {appointment.patient} - {appointment.reason}
@@ -411,23 +516,33 @@ export default function SchedulingClientPage() {
                 <div className="col-span-2 bg-[#f5f5f7] dark:bg-[#2c2c2e] text-center text-sm font-medium py-2 border-b border-[#e5e5ea] dark:border-[#3a3a3c]">
                   {currentDate.toLocaleDateString("en-US", { weekday: "long" })}
                 </div>
-                <div className="text-xs text-[#86868b] dark:text-[#a1a1a6] px-2 py-2 border-r border-[#e5e5ea] dark:border-[#3a3a3c]">
-                  all-day
-                </div>
-                <div className="border-b border-[#e5e5ea] dark:border-[#3a3a3c] h-12"></div>
+
                 {generateDayTimeSlots().map((slot, index) => {
                   const appointment = appointments.find(
-                    a => a.date.toDateString() === currentDate.toDateString() && a.hour === index
+                    (a) =>
+                      a.date.toDateString() === currentDate.toDateString() &&
+                      a.hour === slot.hour &&
+                      a.minute === slot.minute
                   )
+
                   return (
-                    <div key={`row-${index}`} className="contents">
+                    <div key={`day-slot-${index}`} className="contents">
                       <div className="p-2 text-xs text-[#86868b] dark:text-[#a1a1a6] border-r border-[#e5e5ea] dark:border-[#3a3a3c]">
-                        {slot}
+                        {slot.label}
                       </div>
-                      <div className="border-b border-[#e5e5ea] dark:border-[#3a3a3c] h-10">
+                      <div
+                        className="border-b border-[#e5e5ea] dark:border-[#3a3a3c] h-10 cursor-pointer hover:bg-[#f0f4ff] dark:hover:bg-[#2e2e30]"
+                        onClick={() => {
+                          const slotDate = new Date(currentDate)
+                          slotDate.setHours(slot.hour, slot.minute, 0, 0)
+                          setSelectedDate(slotDate)
+                          setNewEventStart(formatAsDatetimeLocal(slotDate))
+                          setAddEventModal(true)
+                        }}
+                      >
                         {appointment && (
                           <div className="bg-[#73a9e9] text-white text-xs px-2 py-1 rounded-md">
-                            {appointment.patient} – {appointment.reason} ({appointment.insurance})
+                            {appointment.patient} – {appointment.reason}
                           </div>
                         )}
                       </div>
@@ -437,49 +552,56 @@ export default function SchedulingClientPage() {
               </div>
             )}
 
+
             {/* List view */}
             {viewMode === "list" && (
-              appointments.length === 0 ? (
-                <div className="p-10 text-center text-[#86868b] dark:text-[#a1a1a6] text-sm">
-                  No events to display
-                </div>
-              ) : (
-                <div className="divide-y divide-[#e5e5ea] dark:divide-[#3a3a3c]">
-                  {appointments
-                    .slice() // create a shallow copy to avoid mutating original
-                    .sort((a, b) => a.date.getTime() - b.date.getTime()) // sort by date ascending
-                    .map(appt => (
-                      <div key={appt.id} className="p-4">
-                        <div className="text-sm font-semibold text-[#1d1d1f] dark:text-white">{appt.patient}</div>
-                        <div className="text-xs text-[#86868b] dark:text-[#a1a1a6]">
-                          {appt.date.toLocaleDateString("en-US", {
-                            weekday: "short",
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric"
-                          })}
-                        </div>
-                        <div className="text-xs text-[#86868b] dark:text-[#a1a1a6] mt-1">
-                          Reason: {appt.reason}
-                        </div>
-                        <div className="text-xs text-[#86868b] dark:text-[#a1a1a6]">
-                          Insurance: {appt.insurance}
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              )
-            )}
-          </div>
+              <div className="p-4">
+                <input
+                  type="text"
+                  placeholder="Search by patient name"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full mb-4 px-3 py-2 border rounded dark:bg-[#1d1d1f] dark:text-white dark:border-[#3a3a3c]"
+                />
 
-          {/* Footer */}
-          <div className="mt-8 pt-4 border-t border-[#e5e5ea] dark:border-[#3a3a3c] text-center">
-            <p className="text-xs text-[#86868b] dark:text-[#a1a1a6]">
-              © 2025 Atlas AI • <span className="hover:underline cursor-pointer">Help</span> •
-              <span className="hover:underline cursor-pointer"> Terms</span> •
-              <span className="hover:underline cursor-pointer"> Privacy</span> •
-              <span className="text-[#73a9e9]"> (v1.0.0)</span>
-            </p>
+                {filteredAppointments.length === 0 ? (
+                  <div className="text-center text-[#86868b] dark:text-[#a1a1a6] text-sm">
+                    No matching appointments
+                  </div>
+                ) : (
+                  <div className="divide-y divide-[#e5e5ea] dark:divide-[#3a3a3c]">
+                    {filteredAppointments
+                      .sort((a, b) => a.date.getTime() - b.date.getTime())
+                      .map(appt => (
+                        <div key={appt.id} className="p-4">
+                          <div className="text-sm font-semibold text-[#1d1d1f] dark:text-white">{appt.patient}</div>
+                          <div className="text-xs text-[#86868b] dark:text-[#a1a1a6]">
+                            {appt.date.toLocaleDateString("en-US", {
+                              weekday: "short",
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric"
+                            })}
+                          </div>
+                          <div className="text-xs text-[#86868b] dark:text-[#a1a1a6] mt-1">
+                            Reason: {appt.reason}
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Footer */}
+            <div className="mt-8 py-12 border-t border-[#e5e5ea] dark:border-[#3a3a3c] text-center flex flex-col items-center">
+              <p className="text-xs text-[#86868b] dark:text-[#a1a1a6]">
+                © 2025 Atlas AI • <span className="hover:underline cursor-pointer">Help</span> •
+                <span className="hover:underline cursor-pointer"> Terms</span> •
+                <span className="hover:underline cursor-pointer"> Privacy</span> •
+                <span className="text-[#73a9e9]"> (v1.0.0)</span>
+              </p>
+            </div>
           </div>
         </div>
       </div>
