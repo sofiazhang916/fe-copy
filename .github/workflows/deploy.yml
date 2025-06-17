@@ -23,7 +23,7 @@ jobs:
         run: bun run build
 
       - name: Export static site
-        run: bun run export
+        run: bun run build
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
