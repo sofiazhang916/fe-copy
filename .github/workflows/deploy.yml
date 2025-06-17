@@ -1,9 +1,9 @@
-name: Deploy with Bun and GitHub Pages
+# .github/workflows/deploy.yml
+name: Deploy to GitHub Pages
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
   build:
@@ -12,17 +12,18 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
+      - uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
 
       - name: Install dependencies
         run: bun install
 
-      - name: Build project
+      - name: Build
         run: bun run build
 
       - name: Export static site
-        run: bun run build
+        run: bun run export
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
