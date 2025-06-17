@@ -4,7 +4,7 @@ import React from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Clock } from "lucide-react";
-import PatientLayout from "@/app/components/patient-layout";
+import PatientLayout from "@/components/layouts/patient-layout";
 
 export default function AppointmentsPage() {
   const pastAppointments = [
