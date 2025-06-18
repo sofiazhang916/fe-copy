@@ -71,7 +71,7 @@ export default function SchedulingClientPage() {
   useEffect(() => {
     const fetchAppointments = async () => {
       try {
-        let url = `/fe-copy/api/calendar?type=${viewMode}&doctor_id=${DOCTOR_ID}`
+        let url = `/api/calendar?type=${viewMode}&doctor_id=${DOCTOR_ID}`
         const yyyy = currentDate.getFullYear()
         const mm = currentDate.getMonth() + 1
         const dd = currentDate.getDate()
