@@ -71,15 +71,15 @@ export default function SchedulingClientPage() {
   useEffect(() => {
     const fetchAppointments = async () => {
       try {
-        let url = ""
+        let url = `/api/calendar?type=${viewMode}&doctor_id=${DOCTOR_ID}`
         const yyyy = currentDate.getFullYear()
         const mm = currentDate.getMonth() + 1
         const dd = currentDate.getDate()
 
         if (viewMode === "day") {
           const dayStr = `${yyyy}-${String(mm).padStart(2, "0")}-${String(dd).padStart(2, "0")}`
-          url = `https://sales.getatlasai.co/profile-service/api/v1/calendar/view-daily-calendar/?doctor_id=${DOCTOR_ID}&date=${dayStr}`
-
+          const dateStr = `${yyyy}-${String(mm).padStart(2, "0")}-${String(dd).padStart(2, "0")}`
+          url += `&date=${dateStr}`
         } else if (viewMode === "week") {
           const startOfWeek = new Date(currentDate)
           startOfWeek.setDate(currentDate.getDate() - currentDate.getDay())
@@ -89,13 +89,9 @@ export default function SchedulingClientPage() {
           const startStr = `${startOfWeek.getFullYear()}/${String(startOfWeek.getMonth() + 1).padStart(2, "0")}/${String(startOfWeek.getDate()).padStart(2, "0")}`
           const endStr = `${endOfWeek.getFullYear()}/${String(endOfWeek.getMonth() + 1).padStart(2, "0")}/${String(endOfWeek.getDate()).padStart(2, "0")}`
 
-          url = `https://sales.getatlasai.co/profile-service/api/v1/calendar/view-weekly-calendar/?doctor_id=${DOCTOR_ID}&start_date=${startStr}&end_date=${endStr}`
-
+          url += `&start=${startStr}&end=${endStr}`
         } else if (viewMode === "month") {
-          url = `https://sales.getatlasai.co/profile-service/api/v1/calendar/view-monthly-calendar/?doctor_id=${DOCTOR_ID}&month=${mm}&year=${yyyy}`
-
-        } else if (viewMode === "list") {
-          url = `https://sales.getatlasai.co/profile-service/api/v1/appointment/view-appointments-list/${DOCTOR_ID}`
+          url += `&month=${mm}&year=${yyyy}`
         }
 
         const response = await fetch(url)
