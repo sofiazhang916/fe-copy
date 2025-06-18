@@ -9,7 +9,9 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
-  }
+  },
+  basePath: '/fe-copy',
+  assetPrefix: '/fe-copy/',
 }
 
 export default nextConfig
