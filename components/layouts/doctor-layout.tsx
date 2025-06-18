@@ -71,7 +71,7 @@ export default function DoctorLayoutWrapper({ children, activePage }: DoctorLayo
                 onClick={() => navigateTo("/doctor-dashboard")}
                 className="bg-transparent rounded px-2 py-1"
               >
-                <img src="/logo-atlasai.png" alt="Atlas AI Logo" className="h-6" />
+                <img src="/fe-copy/logo-atlasai.png" alt="Atlas AI Logo" className="h-6" />
               </button>
             </div>
 

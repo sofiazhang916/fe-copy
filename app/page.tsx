@@ -21,8 +21,8 @@ export default function Home() {
                 onClick={() => setIsDoctor(false)}
                 className={cn(
                   "flex-1 py-3 px-6 rounded-lg text-sm font-medium transition-all duration-200",
-                  !isDoctor 
-                    ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white shadow-sm" 
+                  !isDoctor
+                    ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white shadow-sm"
                     : "text-[#86868b] dark:text-[#a1a1a6] hover:text-[#1d1d1f] dark:hover:text-white"
                 )}
               >
@@ -32,8 +32,8 @@ export default function Home() {
                 onClick={() => setIsDoctor(true)}
                 className={cn(
                   "flex-1 py-3 px-6 rounded-lg text-sm font-medium transition-all duration-200",
-                  isDoctor 
-                    ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white shadow-sm" 
+                  isDoctor
+                    ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white shadow-sm"
                     : "text-[#86868b] dark:text-[#a1a1a6] hover:text-[#1d1d1f] dark:hover:text-white"
                 )}
               >

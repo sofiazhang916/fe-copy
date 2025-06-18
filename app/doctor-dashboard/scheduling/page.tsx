@@ -71,13 +71,12 @@ export default function SchedulingClientPage() {
   useEffect(() => {
     const fetchAppointments = async () => {
       try {
-        let url = `/api/calendar?type=${viewMode}&doctor_id=${DOCTOR_ID}`
+        let url = `/fe-copy/api/calendar?type=${viewMode}&doctor_id=${DOCTOR_ID}`
         const yyyy = currentDate.getFullYear()
         const mm = currentDate.getMonth() + 1
         const dd = currentDate.getDate()
 
         if (viewMode === "day") {
-          const dayStr = `${yyyy}-${String(mm).padStart(2, "0")}-${String(dd).padStart(2, "0")}`
           const dateStr = `${yyyy}-${String(mm).padStart(2, "0")}-${String(dd).padStart(2, "0")}`
           url += `&date=${dateStr}`
         } else if (viewMode === "week") {
@@ -91,11 +90,24 @@ export default function SchedulingClientPage() {
 
           url += `&start=${startStr}&end=${endStr}`
         } else if (viewMode === "month") {
-          url += `&month=${mm}&year=${yyyy}`
+          url += `&month=${String(mm).padStart(2, "0")}&year=${yyyy}`
         }
 
-        const response = await fetch(url)
-        if (!response.ok) throw new Error("Failed to fetch appointments")
+        const token = localStorage.getItem("accessToken")
+        console.log("Access token:", token)
+
+        const response = await fetch(url, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          }
+        })
+
+        if (!response.ok) {
+          const errorText = await response.text()
+          console.error("Fetch failed:", response.status, errorText)
+          throw new Error("Failed to fetch appointments")
+        }
 
         const data = await response.json()
         const appts = (data.appointments || data.data?.appointments

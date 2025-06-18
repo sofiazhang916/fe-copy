@@ -11,7 +11,7 @@ const nextConfig = {
     unoptimized: true,
   },
   basePath: '/fe-copy',
-  assetPrefix: '/fe-copy/',
+  assetPrefix: '/fe-copy/'
 }
 
 export default nextConfig
