@@ -24,12 +24,12 @@ export default function DoctorSidebar({ activePage, collapsed, onToggleCollapse 
       path: "/doctor-dashboard/scheduling",
       key: "calendar",
     },
-    {
-      icon: <User className="h-5 w-5" />,
-      label: "Patients",
-      path: "/doctor-dashboard/patients",
-      key: "patients",
-    },
+    // {
+    //   icon: <User className="h-5 w-5" />,
+    //   label: "Patients",
+    //   path: "/doctor-dashboard/patients",
+    //   key: "patients",
+    // },
     {
       icon: <MessageSquare className="h-5 w-5" />,
       label: "Messages",

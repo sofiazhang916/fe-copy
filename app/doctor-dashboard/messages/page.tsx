@@ -90,7 +90,6 @@ export default function MessagesClientPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedConversation, setSelectedConversation] = useState(conversations[0])
   const [newMessage, setNewMessage] = useState("")
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
   const router = useRouter()
   const { toast } = useToast()
 

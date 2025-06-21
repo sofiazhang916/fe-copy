@@ -577,21 +577,31 @@ export default function SchedulingClientPage() {
                     No matching appointments
                   </div>
                 ) : (
-                  <div className="divide-y divide-[#e5e5ea] dark:divide-[#3a3a3c]">
+                  <div className="space-y-4">
                     {filteredAppointments
                       .sort((a, b) => a.date.getTime() - b.date.getTime())
-                      .map(appt => (
-                        <div key={appt.id} className="p-4">
-                          <div className="text-sm font-semibold text-[#1d1d1f] dark:text-white">{appt.patient}</div>
-                          <div className="text-xs text-[#86868b] dark:text-[#a1a1a6]">
+                      .map((appt) => (
+                        <div
+                          key={appt.id}
+                          className="bg-white dark:bg-[#2c2c2e] shadow-sm border-l-4 border-l-[#73a9e9] rounded-lg p-4 transition-transform hover:scale-[1.01] hover:shadow-md"
+                        >
+                          <div className="text-md font-semibold text-[#1d1d1f] dark:text-white">
+                            {appt.patient}
+                          </div>
+                          <div className="text-sm text-[#86868b] dark:text-[#a1a1a6]">
                             {appt.date.toLocaleDateString("en-US", {
                               weekday: "short",
                               month: "short",
                               day: "numeric",
                               year: "numeric"
+                            })}{" "}
+                            at{" "}
+                            {appt.date.toLocaleTimeString("en-US", {
+                              hour: "2-digit",
+                              minute: "2-digit"
                             })}
                           </div>
-                          <div className="text-xs text-[#86868b] dark:text-[#a1a1a6] mt-1">
+                          <div className="text-sm text-[#86868b] dark:text-[#a1a1a6] mt-1">
                             Reason: {appt.reason}
                           </div>
                         </div>
