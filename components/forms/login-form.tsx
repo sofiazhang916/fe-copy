@@ -33,125 +33,32 @@ export default function LoginForm({ isDoctor = false }: LoginFormProps) {
       console.log("Calling login API with:", { email, password: "[REDACTED]" })
 
       if (isDoctor) {
-        try {
-          // Make an actual API call for doctor login
-          const response = await fetch("https://8qgxh9alt4.execute-api.us-west-1.amazonaws.com/dev/doctor/login", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              action: "login",
-              credentials: {
-                email,
-                password: password,
-              },
-            }),
-          });
-
-          console.log("Doctor login API response status:", response.status);
-          const data = await response.json();
-          console.log("Doctor login API response data:", JSON.stringify(data));
-
-          // If we get a 200 response, consider it a success and redirect
-          if (response.status === 200) {
-            console.log("Doctor login successful, attempting to extract tokens");
-            
-            // Show success toast immediately after confirming 200 status
-            toast({
-              title: "Login successful",
-              description: "Welcome back to your doctor dashboard",
-            });
-            
-            try {
-              // Try to extract tokens if they exist
-              if (data.body && data.body.tokens) {
-                const { access_token, refresh_token, id_token } = data.body.tokens;
-                
-                if (access_token && refresh_token && id_token) {
-                  // Store tokens in localStorage and cookies
-                  storeTokens(access_token, refresh_token, id_token, email);
-                  console.log("Doctor tokens stored successfully with email:", email);
-                } else {
-                  console.error("Missing one or more tokens in doctor login response");
-                }
-              } else {
-                console.error("Tokens not found in expected structure:", JSON.stringify(data));
-              }
-              
-              // Store email for token refresh regardless
-              localStorage.setItem("userEmail", email);
-              
-              console.log("Redirecting to doctor dashboard...");
-              
-              // Redirect to doctor dashboard
-              window.location.href = "/doctor-dashboard";
-              return;
-            } catch (error) {
-              console.error("Error processing successful doctor login:", error);
-              // Continue with redirect anyway
-              window.location.href = "/doctor-dashboard";
-              return;
-            }
-          }
-          
-          // Specifically handle 400 status code for doctor login
-          if (response.status === 400) {
-            let errorMessage = "Login failed";
-            
-            // Try to extract message from response
-            if (data.body) {
-              // Handle string response body
-              if (typeof data.body === 'string') {
-                try {
-                  const parsedBody = JSON.parse(data.body);
-                  errorMessage = parsedBody.message || errorMessage;
-                } catch (e) {
-                  console.error("Failed to parse error body:", e);
-                  // Check if it contains a message directly
-                  if (data.body.includes('message')) {
-                    errorMessage = data.body;
-                  }
-                }
-              } 
-              // Handle object response body
-              else if (data.body.message) {
-                errorMessage = data.body.message;
-              }
-            } else if (data.message) {
-              errorMessage = data.message;
-            }
-            
-            console.error("Doctor login error (400):", errorMessage);
-            setErrorMessage(errorMessage);
-            
-            toast({
-              title: "Login failed",
-              description: errorMessage,
-              variant: "destructive",
-            });
-            
-            setIsLoading(false);
-            return;
-          }
-
-          if (!response.ok) {
-            console.error("Doctor login API error:", data);
-            throw new Error(data.message || "Login failed");
-          }
-
-          throw new Error("Doctor login failed: Invalid response format");
-        } catch (error) {
-          console.error("Doctor login fetch error:", error);
-          setErrorMessage("Network error. Please check your connection and try again.");
-          toast({
-            title: "Login failed",
-            description: "Network error. Please check your connection and try again.",
-            variant: "destructive",
-          });
-          setIsLoading(false);
-          return;
+        // Stub doctor login for now
+        console.log("Doctor login stubbed")
+        // Simulate API delay
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        
+        // Mock successful login
+        const mockTokens = {
+          access_token: "mock_access_token",
+          refresh_token: "mock_refresh_token",
+          id_token: "mock_id_token"
         }
+        
+        storeTokens(
+          mockTokens.access_token,
+          mockTokens.refresh_token,
+          mockTokens.id_token,
+          email
+        )
+        
+        toast({
+          title: "Login successful",
+          description: "Welcome back to your doctor dashboard",
+        })
+        
+        window.location.href = "/doctor-dashboard"
+        return
       }
 
       // Regular user login
@@ -177,12 +84,6 @@ export default function LoginForm({ isDoctor = false }: LoginFormProps) {
       // If we get a 200 response, consider it a success and redirect
       if (response.status === 200) {
         console.log("Login successful, attempting to extract tokens")
-        
-        // Show success toast immediately after confirming 200 status
-        toast({
-          title: "Login successful",
-          description: "Welcome back to your dashboard",
-        })
         
         try {
           // Try to extract tokens if they exist
@@ -251,6 +152,12 @@ export default function LoginForm({ isDoctor = false }: LoginFormProps) {
           // Store email for token refresh regardless
           localStorage.setItem("userEmail", email)
           
+          // Show success toast
+          toast({
+            title: "Login successful",
+            description: "Welcome back to your dashboard",
+          })
+          
           console.log("Redirecting to dashboard...")
           
           // Use multiple redirection methods for redundancy with longer delay
@@ -276,47 +183,7 @@ export default function LoginForm({ isDoctor = false }: LoginFormProps) {
         }
       }
 
-      // Specifically handle 400 status code
-      if (response.status === 400) {
-        let errorMessage = "Login failed";
-        
-        // Try to extract message from response
-        if (data.body) {
-          // Handle string response body
-          if (typeof data.body === 'string') {
-            try {
-              const parsedBody = JSON.parse(data.body);
-              errorMessage = parsedBody.message || errorMessage;
-            } catch (e) {
-              console.error("Failed to parse error body:", e);
-              // Check if it contains a message directly
-              if (data.body.includes('message')) {
-                errorMessage = data.body;
-              }
-            }
-          } 
-          // Handle object response body
-          else if (data.body.message) {
-            errorMessage = data.body.message;
-          }
-        } else if (data.message) {
-          errorMessage = data.message;
-        }
-        
-        console.error("Login error (400):", errorMessage);
-        setErrorMessage(errorMessage);
-        
-        toast({
-          title: "Login failed",
-          description: errorMessage,
-          variant: "destructive",
-        });
-        
-        setIsLoading(false);
-        return;
-      }
-
-      // Only check for other errors if we didn't already decide to redirect
+      // Only check for errors if we didn't already decide to redirect
       // Check if the response contains an error message
       if (data.statusCode === 400 || (data.body && typeof data.body === 'string' && data.body.includes('error'))) {
         // Try to parse the body if it's a string
@@ -344,7 +211,7 @@ export default function LoginForm({ isDoctor = false }: LoginFormProps) {
       console.error("Login error:", error)
       toast({
         title: "Login failed",
-        description: error instanceof Error ? error.message : "Please check your credentials and try again",
+        description: "Please check your credentials and try again",
         variant: "destructive",
       })
     } finally {

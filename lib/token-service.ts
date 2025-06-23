@@ -18,7 +18,7 @@ const getCookie = (name: string) => {
   try {
     const nameEQ = name + "=";
     const ca = document.cookie.split(';');
-    for(let i=0; i < ca.length; i++) {
+    for (let i = 0; i < ca.length; i++) {
       let c = ca[i];
       while (c.charAt(0) === ' ') c = c.substring(1, c.length);
       if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
@@ -35,15 +35,15 @@ const debugTokens = (operation: string) => {
   const accessToken = localStorage.getItem("accessToken");
   const refreshToken = localStorage.getItem("refreshToken");
   const idToken = localStorage.getItem("idToken");
-  
+
   // Also log cookie status
   const cookieToken = getCookie("accessToken");
-  
+
   console.log(`[TokenService:${operation}] accessToken exists in localStorage: ${!!accessToken}`);
   console.log(`[TokenService:${operation}] refreshToken exists: ${!!refreshToken}`);
   console.log(`[TokenService:${operation}] idToken exists: ${!!idToken}`);
   console.log(`[TokenService:${operation}] accessToken exists in cookie: ${!!cookieToken}`);
-  
+
   return { accessToken, refreshToken, idToken, cookieToken };
 };
 
@@ -52,31 +52,31 @@ const debugTokens = (operation: string) => {
 // but stores them as camelCase (accessToken) for consistency with the middleware
 export const storeTokens = (access_token: string, refresh_token: string, id_token: string, email?: string) => {
   console.log("[TokenService] Storing tokens...");
-  console.log("[TokenService] Tokens received for storage:", { 
+  console.log("[TokenService] Tokens received for storage:", {
     access_token_exists: !!access_token,
     refresh_token_exists: !!refresh_token,
     id_token_exists: !!id_token,
     email: email || 'not provided'
   });
-  
+
   try {
     // Store in localStorage with camelCase keys (different from API response)
     localStorage.setItem("accessToken", access_token);
     localStorage.setItem("refreshToken", refresh_token);
     localStorage.setItem("idToken", id_token);
-    
+
     // Store email if provided
     if (email) {
       localStorage.setItem("userEmail", email);
       console.log(`[TokenService] Storing email: ${email}`);
     }
-    
+
     // Also store in cookies for middleware - MUST use camelCase to match middleware expectation
     setCookie("accessToken", access_token, 1); // 1 day expiry
-    
+
     // Verify storage
     debugTokens("store");
-    
+
     return true;
   } catch (error) {
     console.error("[TokenService] Error storing tokens:", error);
@@ -91,31 +91,31 @@ export const getTokens = () => {
     refreshToken: localStorage.getItem("refreshToken") || null,
     idToken: localStorage.getItem("idToken") || null,
   };
-  
+
   console.log("[TokenService] Getting tokens:", {
     accessExists: !!tokens.accessToken,
     refreshExists: !!tokens.refreshToken,
     idExists: !!tokens.idToken
   });
-  
+
   return tokens;
 }
 
 // Clear tokens on logout
 export const clearTokens = () => {
   console.log("[TokenService] Clearing tokens");
-  
+
   // Clear from localStorage
   localStorage.removeItem("accessToken");
   localStorage.removeItem("refreshToken");
   localStorage.removeItem("idToken");
   localStorage.removeItem("userEmail");
   localStorage.removeItem("userRole");
-  
+
   // Clear from cookies
   setCookie("accessToken", "", -1); // Expire immediately
   setCookie("userRole", "", -1);
-  
+
   // Verify clearance
   debugTokens("clear");
 }
@@ -128,14 +128,14 @@ export const isAuthenticated = () => {
     localStorage: !!accessToken,
     cookie: !!cookieToken
   });
-  
+
   // Check both sources for maximum compatibility
-  if ((!accessToken || accessToken === "undefined" || accessToken === "null") && 
-      (!cookieToken || cookieToken === "undefined" || cookieToken === "null")) {
+  if ((!accessToken || accessToken === "undefined" || accessToken === "null") &&
+    (!cookieToken || cookieToken === "undefined" || cookieToken === "null")) {
     console.log("[TokenService] Invalid or missing access token in both localStorage and cookie");
     return false;
   }
-  
+
   return true;
 }
 

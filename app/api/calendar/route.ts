@@ -32,7 +32,6 @@ export async function GET(req: NextRequest) {
             fetchUrl = `${BASE_URL}/appointment/view-appointments-list/${doctorId}`
             break
         default:
-            console.log("❌ Invalid type:", type)
             return NextResponse.json({ error: 'Invalid type' }, { status: 400 })
     }
 
