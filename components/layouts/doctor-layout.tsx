@@ -20,7 +20,7 @@ import {
 
 interface DoctorLayoutWrapperProps {
   children: ReactNode;
-  activePage?: "calendar" | "patients" | "messages" | "profile";
+  activePage?: "calendar" | "patients" | "messages" | "profile" | "emails";
 }
 
 export default function DoctorLayoutWrapper({ children, activePage }: DoctorLayoutWrapperProps) {

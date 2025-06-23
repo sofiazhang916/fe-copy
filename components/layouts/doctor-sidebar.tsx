@@ -4,12 +4,14 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
   Calendar,
+  Mail,
   MessageSquare,
   User,
 } from "lucide-react"
+import EmailsClientPage from "@/app/doctor-dashboard/emails/page"
 
 interface DoctorSidebarProps {
-  activePage?: "calendar" | "patients" | "messages" | "profile"
+  activePage?: "calendar" | "patients" | "messages" | "profile" | "emails"
   collapsed: boolean
   onToggleCollapse: () => void
 }
@@ -35,7 +37,13 @@ export default function DoctorSidebar({ activePage, collapsed, onToggleCollapse 
       label: "Messages",
       path: "/doctor-dashboard/messages",
       key: "messages",
-    }
+    },
+    {
+      icon: <Mail className="h-5 w-5" />,
+      label: "emails",
+      path: "/doctor-dashboard/emails",
+      key: "emails"
+    },
   ];
 
   return (
