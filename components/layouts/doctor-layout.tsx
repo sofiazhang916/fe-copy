@@ -20,7 +20,7 @@ import {
 
 interface DoctorLayoutWrapperProps {
   children: ReactNode;
-  activePage?: "calendar" | "patients" | "messages" | "profile" | "emails";
+  activePage?: "calendar" | "patients" | "messages" | "profile" | "emails" | "survey";
 }
 
 export default function DoctorLayoutWrapper({ children, activePage }: DoctorLayoutWrapperProps) {
@@ -68,7 +68,7 @@ export default function DoctorLayoutWrapper({ children, activePage }: DoctorLayo
               </Button>
 
               <button
-                onClick={() => navigateTo("/doctor-dashboard")}
+                onClick={() => navigateTo("/doctor-dashboard/scheduling")}
                 className="bg-transparent rounded px-2 py-1"
               >
                 <img src="/logo-atlasai.png" alt="Atlas AI Logo" className="h-6" />

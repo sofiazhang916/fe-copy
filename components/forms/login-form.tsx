@@ -57,7 +57,7 @@ export default function LoginForm({ isDoctor = false }: LoginFormProps) {
           description: "Welcome back to your doctor dashboard",
         })
         
-        window.location.href = "/doctor-dashboard"
+        window.location.href = "/doctor-dashboard/scheduling"
         return
       }
 

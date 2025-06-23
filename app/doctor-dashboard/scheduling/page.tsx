@@ -19,9 +19,9 @@ export default function SchedulingClientPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [viewMode, setViewMode] = useState<"month" | "week" | "day" | "list">(() => {
     if (typeof window !== "undefined") {
-      return (localStorage.getItem("viewMode") as "month" | "week" | "day" | "list") || "week"
+      return (localStorage.getItem("viewMode") as "month" | "week" | "day" | "list") || "month"
     }
-    return "week"
+    return "month"
   })
   const [currentDate, setCurrentDate] = useState(new Date())
   const [showEventModal, setAddEventModal] = useState(false)

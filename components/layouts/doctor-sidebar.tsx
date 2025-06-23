@@ -4,14 +4,14 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
   Calendar,
+  FlaskRound,
   Mail,
   MessageSquare,
   User,
 } from "lucide-react"
-import EmailsClientPage from "@/app/doctor-dashboard/emails/page"
 
 interface DoctorSidebarProps {
-  activePage?: "calendar" | "patients" | "messages" | "profile" | "emails"
+  activePage?: "calendar" | "patients" | "messages" | "profile" | "emails" | "survey"
   collapsed: boolean
   onToggleCollapse: () => void
 }
@@ -43,6 +43,12 @@ export default function DoctorSidebar({ activePage, collapsed, onToggleCollapse 
       label: "Emails",
       path: "/doctor-dashboard/emails",
       key: "emails"
+    },
+    {
+      icon: <FlaskRound className="h-5 w-5" />,
+      label: "Survey",
+      path: "/doctor-dashboard/survey",
+      key: "survey"
     },
   ];
 

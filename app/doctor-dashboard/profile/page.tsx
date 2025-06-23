@@ -148,7 +148,7 @@ export default function ProfileClientPage() {
               <Button
                 variant="outline"
                 className="bg-white dark:bg-[#2c2c2e] border border-[#e5e5ea] dark:border-[#3a3a3c] text-[#1d1d1f] dark:text-white hover:bg-[#f5f5f7] dark:hover:bg-[#3a3a3c] rounded-lg"
-                onClick={() => hasProfile ? setIsEditing(false) : router.push("/doctor-dashboard")}
+                onClick={() => hasProfile ? setIsEditing(false) : router.push("/doctor-dashboard/scheduling")}
                 disabled={isSaving}
               >
                 <X className="mr-2 h-4 w-4" /> Cancel

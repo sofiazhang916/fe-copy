@@ -6,7 +6,7 @@ import { useState } from "react"
 import { cn } from "@/lib/utils"
 
 export default function Home() {
-  const [isDoctor, setIsDoctor] = useState(false)
+  const [isDoctor, setIsDoctor] = useState(true) // set doctor as defalut login
 
   return (
     <ThemeProvider>
@@ -17,7 +17,7 @@ export default function Home() {
         <div className="w-full max-w-md space-y-6">
           <div className="bg-white/50 dark:bg-[#2c2c2e]/50 backdrop-blur-sm rounded-xl p-1.5 shadow-lg">
             <div className="flex">
-              <button
+              {/* <button
                 onClick={() => setIsDoctor(false)}
                 className={cn(
                   "flex-1 py-3 px-6 rounded-lg text-sm font-medium transition-all duration-200",
@@ -27,7 +27,7 @@ export default function Home() {
                 )}
               >
                 Patient Login
-              </button>
+              </button> */}
               <button
                 onClick={() => setIsDoctor(true)}
                 className={cn(
