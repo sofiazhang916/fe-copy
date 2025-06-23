@@ -40,7 +40,7 @@ export default function DoctorSidebar({ activePage, collapsed, onToggleCollapse 
     },
     {
       icon: <Mail className="h-5 w-5" />,
-      label: "emails",
+      label: "Emails",
       path: "/doctor-dashboard/emails",
       key: "emails"
     },
