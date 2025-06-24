@@ -170,7 +170,7 @@ export default function ProfileClientPage() {
           <DoctorProfileView profile={doctorProfile} />
         ))}
 
-        <div className="mt-8 pt-4 border-t border-[#e5e5ea] dark:border-[#3a3a3c] text-center">
+        <div className="mt-8 py-12 border-t border-[#e5e5ea] dark:border-[#3a3a3c] text-center flex flex-col items-center">
           <p className="text-xs text-[#86868b] dark:text-[#a1a1a6]">
             © 2025 Atlas AI • <span className="hover:underline cursor-pointer">Help</span> •
             <span className="hover:underline cursor-pointer"> Terms</span> •
