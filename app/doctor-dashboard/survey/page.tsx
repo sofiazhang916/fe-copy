@@ -243,7 +243,13 @@ export default function ReviewPage() {
         );
         console.log(selectedTemplate.id)
 
-        if (!fieldsResponse.ok) throw new Error('Failed to fetch fields');
+        // skip mechanism if internal
+        if (!fieldsResponse.ok) {
+          console.warn("Skipping template:", selectedTemplate.id);
+          setResponses([]);
+          setSelectedTemplate(prev => prev ? { ...prev, fields: [] } : prev);
+          return;
+        }
 
         const fieldsData = await fieldsResponse.json();
         const fields = fieldsData.content?.fields || [];
@@ -312,88 +318,87 @@ export default function ReviewPage() {
   }, [selectedTemplate?.id, toast]);
 
   // Fetch detailed response when selected
-  // Replace your existing fetchResponseDetails useEffect with this:
-  useEffect(() => {
-    const fetchResponseDetails = async () => {
-      if (!selectedResponse || !selectedTemplate) return;
+  // useEffect(() => {
+  //   const fetchResponseDetails = async () => {
+  //     if (!selectedResponse || !selectedTemplate) return;
 
-      try {
-        setIsLoadingResponseDetails(true);
-        await refreshTokens();
-        const token = `Bearer ${localStorage.getItem('access_token')}`;
+  //     try {
+  //       setIsLoadingResponseDetails(true);
+  //       await refreshTokens();
+  //       const token = `Bearer ${localStorage.getItem('access_token')}`;
 
-        const response = await fetch(
-          `/api/survey/response?form_id=${selectedTemplate.id}&response_id=${selectedResponse.id}`,
-          { headers: { Authorization: token } }
-        );
+  //       const response = await fetch(
+  //         `/api/survey/response?form_id=${selectedTemplate.id}&response_id=${selectedResponse.id}`,
+  //         { headers: { Authorization: token } }
+  //       );
 
-        if (!response.ok) throw new Error('Failed to fetch response details');
+  //       if (!response.ok) throw new Error('Failed to fetch response details');
 
-        const data = await response.json();
-        const responseContent = data.content;
+  //       const data = await response.json();
+  //       const responseContent = data.content;
 
-        // Map answers to your fieldResponses format
-        const fieldResponses = responseContent.answers.map((a: any) => {
-          let value: any = a.field_answer;
+  //       // Map answers to your fieldResponses format
+  //       const fieldResponses = responseContent.answers.map((a: any) => {
+  //         let value: any = a.field_answer;
 
-          switch (a.field_type) {
-            case 'number':
-            case 'rating':
-              value = Number(value);
-              break;
-            case 'yes_no':
-              value = value === 'True';
-              break;
-            case 'multiple_choice':
-              value = value.split(';').map((v: string) => v.trim());
-              break;
-          }
+  //         switch (a.field_type) {
+  //           case 'number':
+  //           case 'rating':
+  //             value = Number(value);
+  //             break;
+  //           case 'yes_no':
+  //             value = value === 'True';
+  //             break;
+  //           case 'multiple_choice':
+  //             value = value.split(';').map((v: string) => v.trim());
+  //             break;
+  //         }
 
-          return {
-            fieldName: a.field_title,
-            fieldReference: a.field_title.toLowerCase().replace(/\s+/g, '_'),
-            value
-          };
-        });
+  //         return {
+  //           fieldName: a.field_title,
+  //           fieldReference: a.field_title.toLowerCase().replace(/\s+/g, '_'),
+  //           value
+  //         };
+  //       });
 
-        // Try to find rating and feedback fields if present
-        const ratingField = fieldResponses.find((fr: { fieldReference: string | string[]; fieldName: string; }) => fr.fieldReference.includes('rating') || fr.fieldName.toLowerCase().includes('rating'));
-        const feedbackField = fieldResponses.find((fr: { fieldReference: string | string[]; fieldName: string; }) =>
-          fr.fieldReference.includes('feedback') ||
-          fr.fieldName.toLowerCase().includes('feedback') ||
-          fr.fieldName.toLowerCase().includes('comment')
-        );
+  //       // Try to find rating and feedback fields if present
+  //       const ratingField = fieldResponses.find((fr: { fieldReference: string | string[]; fieldName: string; }) => fr.fieldReference.includes('rating') || fr.fieldName.toLowerCase().includes('rating'));
+  //       const feedbackField = fieldResponses.find((fr: { fieldReference: string | string[]; fieldName: string; }) =>
+  //         fr.fieldReference.includes('feedback') ||
+  //         fr.fieldName.toLowerCase().includes('feedback') ||
+  //         fr.fieldName.toLowerCase().includes('comment')
+  //       );
 
-        const updatedResponse: Review = {
-          ...selectedResponse,
-          rating: ratingField?.value ? Number(ratingField.value) : 0,
-          feedback: feedbackField?.value ? String(feedbackField.value) : '',
-          fieldResponses,
-        };
+  //       const updatedResponse: Review = {
+  //         ...selectedResponse,
+  //         rating: ratingField?.value ? Number(ratingField.value) : 0,
+  //         feedback: feedbackField?.value ? String(feedbackField.value) : '',
+  //         fieldResponses,
+  //       };
 
-        setSelectedResponse(updatedResponse);
+  //       setSelectedResponse(updatedResponse);
 
-        // Update responses list with detailed response
-        setResponses(prev =>
-          prev.map(r => r.id === updatedResponse.id ? updatedResponse : r)
-        );
+  //       // Update responses list with detailed response
+  //       setResponses(prev =>
+  //         prev.map(r => r.id === updatedResponse.id ? updatedResponse : r)
+  //       );
 
-      } catch (error) {
-        console.error('Error fetching response details:', error);
-        toast({
-          title: "Failed to load response details",
-          description: "Could not fetch response data",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoadingResponseDetails(false);
-      }
-    };
+  //     } catch (error) {
+  //       console.error('Error fetching response details:', error);
+  //       toast({
+  //         title: "Failed to load response details",
+  //         description: "Could not fetch response data",
+  //         variant: "destructive",
+  //       });
+  //     } finally {
+  //       setIsLoadingResponseDetails(false);
+  //     }
+  //   };
 
-    if (selectedResponse) {
-      fetchResponseDetails();
-    }
-  }, [selectedResponse, selectedTemplate, toast]);
+  //   if (selectedResponse) {
+  //     fetchResponseDetails();
+  //   }
+  // }, [selectedResponse, selectedTemplate, toast]);
 
   // Update survey link generation
   useEffect(() => {
@@ -701,6 +706,115 @@ Thank you for your time.`);
     });
   };
 
+  const formatDate = (dateString: string) => {
+    if (!dateString) return ""
+    return new Date(dateString).toLocaleString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  }
+
+  const handleViewResponse = async (responseId: string) => {
+    if (!selectedTemplate) return;
+
+    try {
+      setIsLoadingResponseDetails(true);
+      await refreshTokens();
+      const token = `Bearer ${localStorage.getItem("access_token")}`;
+
+      // 1) Fetch the individual response
+      const res = await fetch(
+        `https://sales.getatlasai.co/survey-service/form/view-response?form_id=${selectedTemplate.id}&response_id=${responseId}`,
+        {
+          headers: { Authorization: token }
+        }
+      );
+      if (!res.ok) {
+        console.warn("Response error body:", await res.text());
+        throw new Error(`Failed to fetch response details (status ${res.status})`);
+      }
+
+      // 2) Pull out the JSON
+      const { content } = await res.json();
+      // content.submitted_at  → e.g. "21 May 2025 15:56"
+      // content.answers     → array of { field_title, field_type, field_answer, … }
+
+      // 3) Map into your fieldResponses[]
+      const fieldResponses = content.answers.map((a: any) => {
+        let value: string | number | boolean | string[] = a.field_answer;
+
+        switch (a.field_type) {
+          case "number":
+          case "rating":
+            value = Number(a.field_answer);
+            break;
+
+          case "yes_no":
+            value = a.field_answer === "True";
+            break;
+
+          case "multiple_choice":
+            value = a.field_answer
+              .split(";")
+              .map((v: string) => v.trim());
+            break;
+
+          // short_text, long_text, dropdown, email, phone_number:
+          // leave as string
+        }
+
+        return {
+          fieldName: a.field_title,
+          fieldReference: a.field_title.toLowerCase().replace(/\s+/g, "_"),
+          value
+        };
+      });
+
+      // 4) Optionally pull out a top‐level rating & feedback
+      const ratingField = fieldResponses.find((fr: { fieldReference: string | string[]; fieldName: string; }) =>
+        fr.fieldReference.includes("rating") ||
+        fr.fieldName.toLowerCase().includes("rating")
+      );
+      const feedbackField = fieldResponses.find((fr: { fieldReference: string | string[]; fieldName: string; }) =>
+        fr.fieldReference.includes("feedback") ||
+        fr.fieldName.toLowerCase().includes("feedback") ||
+        fr.fieldName.toLowerCase().includes("comment")
+      );
+
+      // 5) Build your full Review object
+      const detailed: Review = {
+        id: content.response_id,
+        patientName: null,                      // or grab from a “name” field if you have one
+        template: selectedTemplate.name,
+        timestamp: content.submitted_at,
+        rating: ratingField ? Number(ratingField.value) : 0,
+        feedback: feedbackField ? String(feedbackField.value) : "",
+        fieldResponses
+      };
+
+      // 6) Update state & show dialog
+      setSelectedResponse(detailed);
+      setResponses(prev =>
+        prev.map(r => (r.id === detailed.id ? detailed : r))
+      );
+      setIsResponseDialogOpen(true);
+
+    } catch (err: any) {
+      console.error("Error loading response details:", err);
+      toast({
+        title: "Failed to load response",
+        description: err.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoadingResponseDetails(false);
+    }
+  };
+
+
   if (isLoading) {
     return (
       <ThemeProvider>
@@ -712,6 +826,12 @@ Thank you for your time.`);
         </main>
       </ThemeProvider>
     )
+  }
+
+  function prettify(key: string) {
+    return key
+      .replace(/[_-]/g, " ")          // underscores or dashes → spaces
+      .replace(/\b\w/g, (c) => c.toUpperCase()); // capitalize each word
   }
 
   return (
@@ -1302,8 +1422,8 @@ Thank you for your time.`);
                                     key={response.id}
                                     className="p-4 bg-[#f5f5f7] dark:bg-[#3a3a3c] rounded-lg cursor-pointer hover:bg-[#e5e5ea] dark:hover:bg-[#4a4a4c] transition-colors"
                                     onClick={() => {
-                                      setSelectedResponse(response);
-                                      setIsResponseDialogOpen(true);
+                                      handleViewResponse(response.id)
+                                      setIsResponseDialogOpen(true)
                                     }}
                                   >
                                     <div className="flex justify-between items-center">
@@ -1340,33 +1460,26 @@ Thank you for your time.`);
         </div>
 
         {/* Response Detail Dialog */}
-        <Dialog open={isResponseDialogOpen} onOpenChange={setIsResponseDialogOpen}>
+        <Dialog open={isResponseDialogOpen} onOpenChange={() => setIsResponseDialogOpen(false)}>
           <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="text-xl font-semibold">
-                Response Details
-              </DialogTitle>
-              <div className="text-sm text-[#86868b] dark:text-[#a1a1a6]">
-                {selectedResponse?.template} • {selectedResponse?.timestamp ?? ''}
-              </div>
+              <DialogTitle>Response Details</DialogTitle>
+              <DialogDescription className="text-sm text-gray-500 dark:text-gray-400">
+                {selectedTemplate?.name} • {formatDate(selectedResponse?.timestamp ?? "")}
+              </DialogDescription>
             </DialogHeader>
 
             {isLoadingResponseDetails ? (
               <div className="flex justify-center py-8">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#73a9e9]"></div>
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#73a9e9]" />
               </div>
-            ) : selectedResponse ? (
-              <div className="space-y-4 py-4">
+            ) : selectedResponse && selectedResponse.fieldResponses.length > 0 ? (
+              <div className="space-y-6 py-4">
                 {selectedResponse.fieldResponses.map((response, index) => (
                   <div key={index} className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-sm font-medium text-[#1d1d1f] dark:text-white">
-                        {response.fieldName}
-                      </Label>
-                      <span className="text-xs text-[#86868b] dark:text-[#a1a1a6]">
-                        {response.fieldReference}
-                      </span>
-                    </div>
+                    <Label className="text-sm font-medium text-[#1d1d1f] dark:text-white">
+                      {`${prettify(response.fieldReference)}`}
+                    </Label>
                     <div className="p-3 bg-[#f5f5f7] dark:bg-[#3a3a3c] rounded-lg">
                       {Array.isArray(response.value) ? (
                         <ul className="list-disc list-inside space-y-1">
@@ -1384,14 +1497,16 @@ Thank you for your time.`);
                     </div>
                   </div>
                 ))}
+
               </div>
             ) : (
-              <div className="py-4 text-center text-[#86868b] dark:text-[#a1a1a6]">
+              <p className="py-4 text-center text-[#86868b] dark:text-[#a1a1a6]">
                 No response data available
-              </div>
+              </p>
             )}
           </DialogContent>
         </Dialog>
+
 
         {/* Send Survey Dialog */}
         <Dialog

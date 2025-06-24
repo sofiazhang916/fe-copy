@@ -276,10 +276,10 @@ export default function SchedulingClientPage() {
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-medium mb-6 text-[#1d1d1f] dark:text-white">Scheduling Calendar</h2>
-            <Button onClick={() => setAddEventModal(true)} className="bg-[#73a9e9] hover:bg-[#5a9ae6] text-white rounded-lg h-9 px-4 text-sm font-medium">
+            {/* <Button onClick={() => setAddEventModal(true)} className="bg-[#73a9e9] hover:bg-[#5a9ae6] text-white rounded-lg h-9 px-4 text-sm font-medium">
               <Plus className="mr-2 h-4 w-4" />
               New Appointment
-            </Button>
+            </Button> */}
           </div>
 
           {/* Add new Appointment  */}
