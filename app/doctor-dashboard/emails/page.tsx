@@ -442,10 +442,8 @@ export default function EmailsClientPage() {
     return (
         <DoctorLayoutWrapper activePage="emails">
             <div className="flex">
-
                 {/* Main content */}
                 <div className="flex-1">
-
                     <div className="p-6">
                         <h2 className="text-xl font-medium mb-2 text-[#1d1d1f] dark:text-white">Email Communication</h2>
                         <p className="text-sm text-[#86868b] dark:text-[#a1a1a6] mb-6">
