@@ -450,7 +450,7 @@ export default function EmailsClientPage() {
                             Send emails to patients using pre-defined templates or create custom messages.
                         </p>
 
-                        <div className="flex h-[calc(100vh-240px)]">
+                        <div className="flex h-[calc(100vh-190px)]">
                             {/* Email templates */}
                             <div className="w-1/3 bg-white dark:bg-[#2c2c2e] rounded-l-lg shadow-sm border border-[#e5e5ea] dark:border-[#3a3a3c] border-r-0 overflow-hidden h-full flex flex-col">
                                 {/* Top: Header, description, search (fixed) */}

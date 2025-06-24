@@ -646,7 +646,7 @@ Thank you for your time.`);
               Manage and analyze patient feedback, track satisfaction metrics, and improve care quality through comprehensive review management.
             </p>
 
-            <div className="flex h-[calc(100vh-240px)]">
+            <div className="flex h-[calc(100vh-190px)]">
               {/* Templates list */}
               <div className="w-1/3 bg-white dark:bg-[#2c2c2e] rounded-l-lg shadow-sm border border-[#e5e5ea] dark:border-[#3a3a3c] border-r-0 flex flex-col">
                 <div className="p-4 border-b border-[#e5e5ea] dark:border-[#3a3a3c] flex-shrink-0">
