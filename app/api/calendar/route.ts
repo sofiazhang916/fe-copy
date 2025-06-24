@@ -17,6 +17,7 @@ export async function GET(req: NextRequest) {
     console.log({ type, doctorId, date, start, end, month, year })
 
     let fetchUrl = ''
+
     switch (type) {
         case 'day':
             fetchUrl = `${BASE_URL}/calendar/view-daily-calendar/?doctor_id=${doctorId}&date=${date}`

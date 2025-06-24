@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 import { LogOut, Calendar, MessageSquare, FlaskRoundIcon as Flask, User, Search, Send, Mail, Star, ChevronDown, Plus, Trash2, Settings, GripVertical } from "lucide-react"
 import { ThemeProvider } from "@/components/theme-provider"
-import { ThemeToggle } from "@/components/theme-toggle"
 import { clearTokens, isAuthenticated, refreshTokens } from "@/lib/token-service"
 import DoctorLayoutWrapper from "@/components/layouts/doctor-layout"
 import {
@@ -39,8 +38,8 @@ import {
 
 // Define types for our reviews and templates
 interface Review {
-  id: number;
-  patientName: string | null; // null for anonymous feedback
+  id: string;
+  patientName: string | null;
   rating: number;
   feedback: string;
   timestamp: string;
@@ -53,7 +52,7 @@ interface Review {
 }
 
 interface Template {
-  id: number;
+  id: string;
   name: string;
   description: string;
   responseRate: number;
@@ -71,7 +70,7 @@ interface FormField {
   id: string;
   type: 'short_text' | 'long_text' | 'number' | 'yes_no' | 'multiple_choice' | 'dropdown' | 'rating' | 'email' | 'phone';
   label: string;
-  fieldReference: string; // New field reference attribute
+  fieldReference: string;
   required: boolean;
   description?: string;
   constraints?: {
@@ -92,237 +91,31 @@ interface FormField {
   };
 }
 
-// Mock data
-const templates: Template[] = [
-  {
-    id: 1,
-    name: "Post-Visit Satisfaction",
-    description: "Automated survey sent after each appointment",
-    responseRate: 64,
-    averageRating: 4.2,
-    fields: [
-      {
-        name: "Patient Name",
-        type: "short_text",
-        required: true,
-        fieldReference: "patient_name"
-      },
-      {
-        name: "Appointment Date",
-        type: "short_text",
-        required: true,
-        fieldReference: "appointment_date"
-      },
-      {
-        name: "Rating",
-        type: "rating",
-        required: true,
-        fieldReference: "visit_rating"
-      },
-      {
-        name: "Feedback",
-        type: "long_text",
-        required: false,
-        fieldReference: "visit_feedback"
-      }
-    ]
-  },
-  {
-    id: 2,
-    name: "Quarterly Patient Experience",
-    description: "Comprehensive quarterly feedback on overall experience",
-    responseRate: 48,
-    averageRating: 3.8,
-    fields: [
-      {
-        name: "Patient Name",
-        type: "short_text",
-        required: true,
-        fieldReference: "patient_name"
-      },
-      {
-        name: "Quarter",
-        type: "dropdown",
-        required: true,
-        fieldReference: "quarter"
-      },
-      {
-        name: "Overall Rating",
-        type: "rating",
-        required: true,
-        fieldReference: "overall_rating"
-      },
-      {
-        name: "Detailed Feedback",
-        type: "long_text",
-        required: false,
-        fieldReference: "detailed_feedback"
-      }
-    ]
-  },
-  {
-    id: 3,
-    name: "Telehealth Experience",
-    description: "Feedback specific to virtual appointment experience",
-    responseRate: 72,
-    averageRating: 4.5,
-    fields: [
-      {
-        name: "Patient Name",
-        type: "short_text",
-        required: true,
-        fieldReference: "patient_name"
-      },
-      {
-        name: "Visit Date",
-        type: "short_text",
-        required: true,
-        fieldReference: "visit_date"
-      },
-      {
-        name: "Platform Rating",
-        type: "rating",
-        required: true,
-        fieldReference: "platform_rating"
-      },
-      {
-        name: "Technical Issues",
-        type: "multiple_choice",
-        required: false,
-        fieldReference: "technical_issues"
-      },
-      {
-        name: "Feedback",
-        type: "long_text",
-        required: false,
-        fieldReference: "visit_feedback"
-      }
-    ]
-  }
-];
-
-const reviews: Review[] = [
-  {
-    id: 1,
-    patientName: "John Smith",
-    rating: 5,
-    feedback: "Excellent service and very professional staff. The doctor was very thorough and explained everything clearly.",
-    timestamp: "2024-05-21T15:30:00",
-    template: "Post-Visit Satisfaction",
-    fieldResponses: [
-      {
-        fieldName: "Patient Name",
-        fieldReference: "patient_name",
-        value: "John Smith"
-      },
-      {
-        fieldName: "Appointment Date",
-        fieldReference: "appointment_date",
-        value: "2024-05-21"
-      },
-      {
-        fieldName: "Rating",
-        fieldReference: "visit_rating",
-        value: 5
-      },
-      {
-        fieldName: "Feedback",
-        fieldReference: "visit_feedback",
-        value: "Excellent service and very professional staff. The doctor was very thorough and explained everything clearly."
-      }
-    ]
-  },
-  {
-    id: 2,
-    patientName: null,
-    rating: 4,
-    feedback: "Good experience overall. The wait time was a bit long, but the doctor was very attentive.",
-    timestamp: "2024-05-20T10:15:00",
-    template: "Telehealth Experience",
-    fieldResponses: [
-      {
-        fieldName: "Patient Name",
-        fieldReference: "patient_name",
-        value: null
-      },
-      {
-        fieldName: "Visit Date",
-        fieldReference: "visit_date",
-        value: "2024-05-20"
-      },
-      {
-        fieldName: "Platform Rating",
-        fieldReference: "platform_rating",
-        value: 4
-      },
-      {
-        fieldName: "Technical Issues",
-        fieldReference: "technical_issues",
-        value: ["None"]
-      },
-      {
-        fieldName: "Feedback",
-        fieldReference: "visit_feedback",
-        value: "Good experience overall. The wait time was a bit long, but the doctor was very attentive."
-      }
-    ]
-  },
-  {
-    id: 3,
-    patientName: "Sarah Johnson",
-    rating: 5,
-    feedback: "The virtual consultation was smooth and efficient. The doctor was very helpful and addressed all my concerns.",
-    timestamp: "2024-05-19T14:45:00",
-    template: "Telehealth Experience",
-    fieldResponses: [
-      {
-        fieldName: "Patient Name",
-        fieldReference: "patient_name",
-        value: "Sarah Johnson"
-      },
-      {
-        fieldName: "Visit Date",
-        fieldReference: "visit_date",
-        value: "2024-05-19"
-      },
-      {
-        fieldName: "Platform Rating",
-        fieldReference: "platform_rating",
-        value: 5
-      },
-      {
-        fieldName: "Technical Issues",
-        fieldReference: "technical_issues",
-        value: ["Audio delay", "Fixed after 2 minutes"]
-      },
-      {
-        fieldName: "Feedback",
-        fieldReference: "visit_feedback",
-        value: "The virtual consultation was smooth and efficient. The doctor was very helpful and addressed all my concerns."
-      }
-    ]
-  }
-];
-
 // Add a helper function to format the date
 const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const day = date.getDate();
-  const month = months[date.getMonth()];
-  const year = date.getFullYear();
-  const hours = date.getHours().toString().padStart(2, '0');
-  const minutes = date.getMinutes().toString().padStart(2, '0');
-  return `${day} ${month} ${year} ${hours}:${minutes}`;
+  // API date is already in a readable format, so just return it
+  return dateString;
+};
+
+// Field type mapping from API to our types
+const fieldTypeMap: Record<string, FormField['type']> = {
+  short_text: 'short_text',
+  long_text: 'long_text',
+  number: 'number',
+  yes_no: 'yes_no',
+  multiple_choice: 'multiple_choice',
+  dropdown: 'dropdown',
+  rating: 'rating',
+  email: 'email',
+  phone_number: 'phone'
 };
 
 export default function ReviewPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
-  const [selectedTemplate, setSelectedTemplate] = useState<Template>(templates[0])
-  const [selectedReview, setSelectedReview] = useState<Review | null>(null)
-  const [templatesList, setTemplatesList] = useState<Template[]>(templates)
-  const [filteredTemplates, setFilteredTemplates] = useState<Template[]>(templates)
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null)
+  const [templatesList, setTemplatesList] = useState<Template[]>([])
+  const [filteredTemplates, setFilteredTemplates] = useState<Template[]>([])
   const [isCreateSurveyOpen, setIsCreateSurveyOpen] = useState(false)
   const [formFields, setFormFields] = useState<FormField[]>([])
   const [surveyName, setSurveyName] = useState("")
@@ -341,14 +134,20 @@ export default function ReviewPage() {
   const [isEditSurveyOpen, setIsEditSurveyOpen] = useState(false);
   const [isDeleteSurveyOpen, setIsDeleteSurveyOpen] = useState(false);
   const [emailToSend, setEmailToSend] = useState("");
-  const [surveyLink, setSurveyLink] = useState(""); // This would typically come from your backend
+  const [surveyLink, setSurveyLink] = useState("");
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
   const [isEditFieldOpen, setIsEditFieldOpen] = useState(false);
   const [editingField, setEditingField] = useState<FormField | null>(null);
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(true);
+  const [isLoadingResponses, setIsLoadingResponses] = useState(false);
+  const [isLoadingResponseDetails, setIsLoadingResponseDetails] = useState(false);
+  const [responses, setResponses] = useState<Review[]>([]);
 
   // Filter templates based on search query
   useEffect(() => {
+    if (!templatesList) return;
+
     const filtered = templatesList.filter((template) => {
       const searchLower = searchQuery.toLowerCase()
       return (
@@ -360,10 +159,263 @@ export default function ReviewPage() {
     setFilteredTemplates(filtered)
 
     // If the selected template is filtered out, select the first available template
-    if (filtered.length > 0 && !filtered.find(t => t.id === selectedTemplate.id)) {
+    if (filtered.length > 0 && selectedTemplate && !filtered.find(t => t.id === selectedTemplate.id)) {
       setSelectedTemplate(filtered[0])
     }
-  }, [searchQuery, templatesList, selectedTemplate.id])
+  }, [searchQuery, templatesList, selectedTemplate])
+
+  // Fetch templates on mount
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      if (!isAuthenticated()) return;
+
+      try {
+        setIsLoadingTemplates(true);
+        await refreshTokens();
+        const token = `Bearer ${localStorage.getItem('access_token')}`;
+
+        const response = await fetch('/api/survey/template', {
+          headers: { Authorization: token }
+        });
+
+        const data = await response.json(); // ✅ read body once
+
+        if (!response.ok) {
+          console.error("Fetch error body:", data);
+          throw new Error('Failed to fetch templates');
+        }
+
+        const templatesData = data.content || [];
+
+
+        // Transform API data to Template format
+        const transformedTemplates: Template[] = templatesData.map((t: any) => ({
+          id: t.survey_id,
+          name: t.survey_title,
+          description: t.survey_description,
+          responseRate: 0, // Not provided by API
+          averageRating: 0, // Not provided by API
+          fields: [] // Will be fetched on selection
+        }));
+
+        setTemplatesList(transformedTemplates);
+        setFilteredTemplates(transformedTemplates);
+
+        if (transformedTemplates.length > 0) {
+          const stillSelected = transformedTemplates.find(t => t.id === selectedTemplate?.id);
+          setSelectedTemplate(stillSelected || transformedTemplates[0]);
+        } else {
+          setSelectedTemplate(null);
+        }
+
+      } catch (error) {
+        console.error('Error fetching templates:', error);
+        toast({
+          title: "Failed to load surveys",
+          description: "Could not fetch survey templates",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoadingTemplates(false);
+      }
+    };
+
+    fetchTemplates();
+  }, [toast]);
+
+  // Fetch fields and responses when template is selected
+  useEffect(() => {
+    const fetchTemplateDetails = async () => {
+      if (!selectedTemplate) {
+        throw new Error('No template ID selected');
+      }
+
+      try {
+        setIsLoadingResponses(true);
+        await refreshTokens();
+        const token = `Bearer ${localStorage.getItem('access_token')}`;
+
+        // Fetch fields
+        const fieldsResponse = await fetch(
+          `/api/survey/fields?form_id=${selectedTemplate.id}`,
+          { headers: { Authorization: token } }
+        );
+
+        if (!fieldsResponse.ok) throw new Error('Failed to fetch fields');
+
+        const fieldsData = await fieldsResponse.json();
+        const fields = fieldsData.content?.content?.fields || [];
+
+        // Update template with fields
+        const updatedTemplate = {
+          ...selectedTemplate,
+          fields: fields.map((f: any) => ({
+            name: f.title,
+            type: fieldTypeMap[f.field_type] || 'short_text',
+            required: f.required,
+            fieldReference: f.ref
+          }))
+        };
+
+        // Update templates list
+        setTemplatesList(prev =>
+          prev.map(t => t.id === selectedTemplate.id ? updatedTemplate : t)
+        );
+        setFilteredTemplates(prev =>
+          prev.map(t => t.id === selectedTemplate.id ? updatedTemplate : t)
+        );
+        setSelectedTemplate(updatedTemplate);
+
+        // Fetch responses
+        const responsesResponse = await fetch(
+          `/api/survey/responses?form_id=${selectedTemplate.id}`,
+          { headers: { Authorization: token } }
+        );
+
+        if (!responsesResponse.ok) throw new Error('Failed to fetch responses');
+
+        const responsesData = await responsesResponse.json();
+        const feedbackList = responsesData.content?.feedback_list || [];
+
+        // Transform to Review format
+        const transformedResponses: Review[] = feedbackList.map((r: any) => ({
+          id: r.feedback_id,
+          patientName: r.user_name,
+          rating: 0, // Will be populated in detailed fetch
+          feedback: '', // Will be populated in detailed fetch
+          timestamp: r.submitted_at,
+          template: selectedTemplate.name,
+          fieldResponses: [] // Will be populated in detailed fetch
+        }));
+
+        setResponses(transformedResponses);
+      } catch (error) {
+        console.error('Error fetching template details:', error);
+        toast({
+          title: "Failed to load template details",
+          description: "Could not fetch fields and responses",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoadingResponses(false);
+      }
+    };
+
+    if (selectedTemplate) {
+      fetchTemplateDetails();
+    }
+  }, [selectedTemplate, toast]);
+
+  // Fetch detailed response when selected
+  useEffect(() => {
+    const fetchResponseDetails = async () => {
+      if (!selectedResponse || !selectedTemplate) return;
+
+      try {
+        setIsLoadingResponseDetails(true);
+        await refreshTokens();
+        const token = `Bearer ${localStorage.getItem('access_token')}`;
+
+        const response = await fetch(
+          `/api/survey/response?form_id=${selectedTemplate.id}&response_id=${selectedResponse.id}`,
+          { headers: { Authorization: token } }
+        );
+
+        if (!response.ok) throw new Error('Failed to fetch response details');
+
+        const data = await response.json();
+        const responseData = data.content || {};
+        const answers = responseData.answers || [];
+
+        // Map field answers to our format
+        const fieldResponses = answers.map((a: any) => {
+          let value: any = a.field_answer;
+
+          // Convert to proper types
+          switch (a.field_type) {
+            case 'number':
+            case 'rating':
+              value = Number(value);
+              break;
+            case 'yes_no':
+              value = value === 'True';
+              break;
+            case 'multiple_choice':
+              value = value.split(';').map((v: string) => v.trim());
+              break;
+          }
+
+          return {
+            fieldName: a.field_title,
+            fieldReference: a.field_title.toLowerCase().replace(/\s+/g, '_'),
+            value
+          };
+        });
+
+        // Find if there's a rating field
+        const ratingField = fieldResponses.find(
+          (fr: { fieldReference: string | string[]; fieldName: string | string[]; }) => fr.fieldReference.includes('rating') || fr.fieldName.includes('Rating')
+        );
+
+        // Find if there's a feedback field
+        const feedbackField = fieldResponses.find(
+          (fr: { fieldReference: string | string[]; fieldName: string | string[]; }) => fr.fieldReference.includes('feedback') ||
+            fr.fieldName.includes('Feedback') ||
+            fr.fieldName.includes('Comment')
+        );
+
+        // Update the response
+        const updatedResponse: Review = {
+          ...selectedResponse,
+          rating: ratingField?.value ? Number(ratingField.value) : 0,
+          feedback: feedbackField?.value ? String(feedbackField.value) : '',
+          fieldResponses
+        };
+
+        setSelectedResponse(updatedResponse);
+
+        // Update responses list
+        setResponses(prev =>
+          prev.map(r => r.id === updatedResponse.id ? updatedResponse : r)
+        );
+      } catch (error) {
+        console.error('Error fetching response details:', error);
+        toast({
+          title: "Failed to load response details",
+          description: "Could not fetch response data",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoadingResponseDetails(false);
+      }
+    };
+
+    if (selectedResponse) {
+      fetchResponseDetails();
+    }
+  }, [selectedResponse, selectedTemplate, toast]);
+
+  // Update survey link generation
+  useEffect(() => {
+    if (selectedTemplate) {
+      setSurveyLink(`https://form.typeform.com/to/${selectedTemplate.id}`);
+    }
+  }, [selectedTemplate]);
+
+  // Update email body with survey link
+  useEffect(() => {
+    if (surveyLink) {
+      setEmailBody(`Hello,
+
+Please take a moment to fill out our survey. Your feedback is valuable to us.
+
+Click the link below to access the survey:
+${surveyLink}
+
+Thank you for your time.`);
+    }
+  }, [surveyLink]);
+
 
   useEffect(() => {
     const initializePage = async () => {
@@ -447,6 +499,8 @@ export default function ReviewPage() {
     // Remove from formFields
     setFormFields(formFields.filter(field => field.id !== fieldId));
 
+    if (!selectedTemplate) return;
+
     // Update the selected template's fields
     const updatedTemplate = {
       ...selectedTemplate,
@@ -462,20 +516,28 @@ export default function ReviewPage() {
     setFilteredTemplates(filteredTemplates.map(template =>
       template.id === selectedTemplate.id ? updatedTemplate : template
     ));
-    setSelectedTemplate(updatedTemplate);
+    setTemplatesList(prev =>
+      prev.map(t => t.id === selectedTemplate.id ? updatedTemplate : t)
+    );
+    setFilteredTemplates(prev =>
+      prev.map(t => t.id === selectedTemplate.id ? updatedTemplate : t)
+    );
+    // Do not setSelectedTemplate(updatedTemplate)
 
     // Update any responses that reference this field
-    const updatedReviews = reviews.map(review => {
-      if (review.template === selectedTemplate.name) {
+    const updatedResponses = responses.map(response => {
+      if (response.template === selectedTemplate.name) {
         return {
-          ...review,
-          fieldResponses: review.fieldResponses.filter(response =>
-            response.fieldReference !== fieldToRemove.fieldReference
+          ...response,
+          fieldResponses: response.fieldResponses.filter(res =>
+            res.fieldReference !== fieldToRemove.fieldReference
           )
         };
       }
-      return review;
+      return response;
     });
+
+    setResponses(updatedResponses);
 
     // Show success message
     toast({
@@ -505,6 +567,8 @@ export default function ReviewPage() {
   };
 
   const handleEditSurvey = () => {
+    if (!selectedTemplate) return;
+
     // Here you would typically load the existing survey data
     setSurveyName(selectedTemplate.name);
     setSurveyDescription(selectedTemplate.description);
@@ -517,17 +581,11 @@ export default function ReviewPage() {
     })));
     setIsEditSurveyOpen(true);
     setEmailSubject(`Fill out survey: ${selectedTemplate.name}`);
-    setEmailBody(`Hello,
-
-Please take a moment to fill out our survey. Your feedback is valuable to us.
-
-Click the link below to access the survey:
-https://atlas-ai.com/survey/example
-
-Thank you for your time.`);
   };
 
   const handleDeleteSurvey = () => {
+    if (!selectedTemplate) return;
+
     // Remove the template from the list
     const updatedTemplates = templatesList.filter(t => t.id !== selectedTemplate.id);
     setTemplatesList(updatedTemplates);
@@ -538,6 +596,8 @@ Thank you for your time.`);
     // Select the first available template if there are any left
     if (updatedTemplates.length > 0) {
       setSelectedTemplate(updatedTemplates[0]);
+    } else {
+      setSelectedTemplate(null);
     }
 
     toast({
@@ -559,7 +619,7 @@ Thank you for your time.`);
   };
 
   const saveEditedField = () => {
-    if (!editingField || !newFieldLabel.trim()) return;
+    if (!editingField || !newFieldLabel.trim() || !selectedTemplate) return;
 
     const updatedField: FormField = {
       ...editingField,
@@ -603,24 +663,26 @@ Thank you for your time.`);
     setSelectedTemplate(updatedTemplate);
 
     // Update any responses that reference this field
-    const updatedReviews = reviews.map(review => {
-      if (review.template === selectedTemplate.name) {
+    const updatedResponses = responses.map(response => {
+      if (response.template === selectedTemplate.name) {
         return {
-          ...review,
-          fieldResponses: review.fieldResponses.map(response => {
-            if (response.fieldReference === editingField.fieldReference) {
+          ...response,
+          fieldResponses: response.fieldResponses.map(res => {
+            if (res.fieldReference === editingField.fieldReference) {
               return {
-                ...response,
+                ...res,
                 fieldName: updatedField.label,
                 fieldReference: updatedField.fieldReference
               };
             }
-            return response;
+            return res;
           })
         };
       }
-      return review;
+      return response;
     });
+
+    setResponses(updatedResponses);
 
     // Reset form
     setEditingField(null);
@@ -663,13 +725,13 @@ Thank you for your time.`);
               Manage and analyze patient feedback, track satisfaction metrics, and improve care quality through comprehensive review management.
             </p>
 
-            <div className="flex h-[calc(100vh-240px)]">
+            <div className="flex h-[calc(100vh-190px)]">
               {/* Templates list */}
               <div className="w-1/3 bg-white dark:bg-[#2c2c2e] rounded-l-lg shadow-sm border border-[#e5e5ea] dark:border-[#3a3a3c] border-r-0 flex flex-col">
                 <div className="p-4 border-b border-[#e5e5ea] dark:border-[#3a3a3c] flex-shrink-0">
                   <h3 className="text-lg font-medium mb-2">Survey Templates</h3>
                   <p className="text-sm text-[#86868b] dark:text-[#a1a1a6] mb-4">
-                    {filteredTemplates.length} template{filteredTemplates.length !== 1 ? 's' : ''} available
+                    {isLoadingTemplates ? "Loading..." : `${filteredTemplates.length} template${filteredTemplates.length !== 1 ? 's' : ''} available`}
                   </p>
 
                   <div className="relative">
@@ -693,16 +755,20 @@ Thank you for your time.`);
                 </div>
 
                 <div className="flex-1 overflow-y-auto">
-                  {filteredTemplates.length === 0 ? (
+                  {isLoadingTemplates ? (
                     <div className="p-4 text-center text-[#86868b] dark:text-[#a1a1a6]">
-                      No templates found matching "{searchQuery}"
+                      Loading templates...
+                    </div>
+                  ) : filteredTemplates.length === 0 ? (
+                    <div className="p-4 text-center text-[#86868b] dark:text-[#a1a1a6]">
+                      {searchQuery ? `No templates found matching "${searchQuery}"` : "No templates available"}
                     </div>
                   ) : (
                     <>
                       {filteredTemplates.map((template) => (
                         <div
                           key={template.id}
-                          className={`p-4 border-b border-[#e5e5ea] dark:border-[#3a3a3c] cursor-pointer hover:bg-[#f5f5f7] dark:hover:bg-[#3a3a3c] ${selectedTemplate.id === template.id ? "bg-[#f5f5f7] dark:bg-[#3a3a3c]" : ""
+                          className={`p-4 border-b border-[#e5e5ea] dark:border-[#3a3a3c] cursor-pointer hover:bg-[#f5f5f7] dark:hover:bg-[#3a3a3c] ${selectedTemplate?.id === template.id ? "bg-[#f5f5f7] dark:bg-[#3a3a3c]" : ""
                             }`}
                           onClick={() => setSelectedTemplate(template)}
                         >
@@ -713,13 +779,6 @@ Thank you for your time.`);
                             <p className="text-sm text-[#86868b] dark:text-[#a1a1a6]">
                               {template.description}
                             </p>
-                            {/* <div className="flex items-center gap-4 text-sm text-[#86868b] dark:text-[#a1a1a6]">
-                                <span>Response Rate: {template.responseRate}%</span>
-                                <span className="flex items-center">
-                                  <Star className="h-4 w-4 text-yellow-400 mr-1" />
-                                  {template.averageRating}
-                                </span>
-                              </div> */}
                           </div>
                         </div>
                       ))}
@@ -1095,172 +1154,180 @@ Thank you for your time.`);
 
               {/* Reviews and Template Details */}
               <div className="w-2/3 bg-white dark:bg-[#2c2c2e] rounded-r-lg shadow-sm border border-[#e5e5ea] dark:border-[#3a3a3c] flex flex-col">
-                {/* Template header */}
-                <div className="p-4 border-b border-[#e5e5ea] dark:border-[#3a3a3c] flex-shrink-0">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h4 className="font-medium text-[#1d1d1f] dark:text-white text-lg mb-2">
-                        {selectedTemplate.name}
-                      </h4>
-                      <p className="text-sm text-[#86868b] dark:text-[#a1a1a6]">
-                        {selectedTemplate.description}
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={() => setIsSendSurveyOpen(true)}
-                        variant="ghost"
-                        size="icon"
-                        className="h-9 w-9 text-[#1d1d1f] dark:text-white hover:bg-[#f5f5f7] dark:hover:bg-[#3a3a3c]"
-                        title="Send Survey"
-                      >
-                        <Mail className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        onClick={handleEditSurvey}
-                        variant="ghost"
-                        size="icon"
-                        className="h-9 w-9 text-[#1d1d1f] dark:text-white hover:bg-[#f5f5f7] dark:hover:bg-[#3a3a3c]"
-                        title="Edit Survey"
-                      >
-                        <Settings className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        onClick={() => setIsDeleteSurveyOpen(true)}
-                        variant="ghost"
-                        size="icon"
-                        className="h-9 w-9 text-[#1d1d1f] dark:text-white hover:bg-[#f5f5f7] dark:hover:bg-[#3a3a3c]"
-                        title="Delete Survey"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                {!selectedTemplate ? (
+                  <div className="flex-1 flex items-center justify-center">
+                    <p className="text-[#86868b] dark:text-[#a1a1a6]">
+                      {isLoadingTemplates ? "Loading survey details..." : "Select a survey template"}
+                    </p>
                   </div>
-                </div>
-
-                {/* Statistics Cards */}
-                <div className="p-4 border-b border-[#e5e5ea] dark:border-[#3a3a3c] flex-shrink-0">
-                  <h5 className="font-medium text-[#1d1d1f] dark:text-white mb-3">Template Statistics</h5>
-                  <div className="grid grid-cols-4 gap-4">
-                    <div className="bg-[#f5f5f7] dark:bg-[#3a3a3c] rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <h6 className="text-sm font-medium text-[#1d1d1f] dark:text-white">Total Sent</h6>
-                        <Mail className="h-4 w-4 text-[#73a9e9]" />
+                ) : (
+                  <>
+                    {/* Template header */}
+                    <div className="p-4 border-b border-[#e5e5ea] dark:border-[#3a3a3c] flex-shrink-0">
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <h4 className="font-medium text-[#1d1d1f] dark:text-white text-lg mb-2">
+                            {selectedTemplate.name}
+                          </h4>
+                          <p className="text-sm text-[#86868b] dark:text-[#a1a1a6]">
+                            {selectedTemplate.description}
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            onClick={() => setIsSendSurveyOpen(true)}
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9 text-[#1d1d1f] dark:text-white hover:bg-[#f5f5f7] dark:hover:bg-[#3a3a3c]"
+                            title="Send Survey"
+                          >
+                            <Mail className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            onClick={handleEditSurvey}
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9 text-[#1d1d1f] dark:text-white hover:bg-[#f5f5f7] dark:hover:bg-[#3a3a3c]"
+                            title="Edit Survey"
+                          >
+                            <Settings className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            onClick={() => setIsDeleteSurveyOpen(true)}
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9 text-[#1d1d1f] dark:text-white hover:bg-[#f5f5f7] dark:hover:bg-[#3a3a3c]"
+                            title="Delete Survey"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
-                      <p className="text-2xl font-semibold text-[#1d1d1f] dark:text-white">1,234</p>
-                      <p className="text-xs text-[#86868b] dark:text-[#a1a1a6] mt-1">Last 30 days</p>
                     </div>
-                    <div className="bg-[#f5f5f7] dark:bg-[#3a3a3c] rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <h6 className="text-sm font-medium text-[#1d1d1f] dark:text-white">Responses</h6>
-                        <MessageSquare className="h-4 w-4 text-[#73a9e9]" />
-                      </div>
-                      <p className="text-2xl font-semibold text-[#1d1d1f] dark:text-white">789</p>
-                      <p className="text-xs text-[#86868b] dark:text-[#a1a1a6] mt-1">Last 30 days</p>
-                    </div>
-                    {/* Response Rate and Rating Cards */}
-                    {/* <div className="bg-[#f5f5f7] dark:bg-[#3a3a3c] rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <h6 className="text-sm font-medium text-[#1d1d1f] dark:text-white">Response Rate</h6>
-                          <Flask className="h-4 w-4 text-[#73a9e9]" />
-                        </div>
-                        <p className="text-2xl font-semibold text-[#1d1d1f] dark:text-white">{selectedTemplate.responseRate}%</p>
-                        <p className="text-xs text-[#86868b] dark:text-[#a1a1a6] mt-1">Overall</p>
-                      </div>
-                      <div className="bg-[#f5f5f7] dark:bg-[#3a3a3c] rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <h6 className="text-sm font-medium text-[#1d1d1f] dark:text-white">Average Rating</h6>
-                          <Star className="h-4 w-4 text-yellow-400" />
-                        </div>
-                        <div className="flex items-baseline gap-1">
-                          <p className="text-2xl font-semibold text-[#1d1d1f] dark:text-white">{selectedTemplate.averageRating}</p>
-                          <p className="text-sm text-[#86868b] dark:text-[#a1a1a6]">/ 5</p>
-                        </div>
-                        <p className="text-xs text-[#86868b] dark:text-[#a1a1a6] mt-1">Overall</p>
-                      </div> */}
-                  </div>
-                </div>
 
-                {/* Scrollable content area */}
-                <div className="flex-1 overflow-y-auto">
-                  {/* Template fields */}
-                  <div className="border-b border-[#e5e5ea] dark:border-[#3a3a3c]">
-                    <Collapsible>
-                      <CollapsibleTrigger className="w-full p-4 flex items-center justify-between hover:bg-[#f5f5f7] dark:hover:bg-[#3a3a3c] transition-colors">
-                        <h5 className="font-medium text-[#1d1d1f] dark:text-white">Template Fields</h5>
-                        <ChevronDown className="h-4 w-4 text-[#86868b] dark:text-[#a1a1a6] transition-transform duration-200 data-[state=open]:rotate-180" />
-                      </CollapsibleTrigger>
-                      <CollapsibleContent className="p-4 pt-0">
-                        <div className="space-y-3">
-                          {selectedTemplate.fields.map((field, index) => (
-                            <div
-                              key={index}
-                              className="p-4 bg-[#f5f5f7] dark:bg-[#3a3a3c] rounded-lg"
-                            >
-                              <div className="flex items-start justify-between">
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2">
-                                    <h6 className="font-medium text-[#1d1d1f] dark:text-white">
-                                      {field.name}
-                                    </h6>
-                                    {field.required && (
-                                      <span className="text-xs px-2 py-1 bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400 rounded">
-                                        Required
-                                      </span>
-                                    )}
-                                    <span className="text-xs px-2 py-1 bg-[#e5e5ea] dark:bg-[#4a4a4c] rounded">
-                                      {field.type.replace('_', ' ').toUpperCase()}
-                                    </span>
+                    {/* Statistics Cards */}
+                    <div className="p-4 border-b border-[#e5e5ea] dark:border-[#3a3a3c] flex-shrink-0">
+                      <h5 className="font-medium text-[#1d1d1f] dark:text-white mb-3">Template Statistics</h5>
+                      <div className="grid grid-cols-4 gap-4">
+                        <div className="bg-[#f5f5f7] dark:bg-[#3a3a3c] rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <h6 className="text-sm font-medium text-[#1d1d1f] dark:text-white">Total Sent</h6>
+                            <Mail className="h-4 w-4 text-[#73a9e9]" />
+                          </div>
+                          <p className="text-2xl font-semibold text-[#1d1d1f] dark:text-white">1,234</p>
+                          <p className="text-xs text-[#86868b] dark:text-[#a1a1a6] mt-1">Last 30 days</p>
+                        </div>
+                        <div className="bg-[#f5f5f7] dark:bg-[#3a3a3c] rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <h6 className="text-sm font-medium text-[#1d1d1f] dark:text-white">Responses</h6>
+                            <MessageSquare className="h-4 w-4 text-[#73a9e9]" />
+                          </div>
+                          <p className="text-2xl font-semibold text-[#1d1d1f] dark:text-white">{responses.length}</p>
+                          <p className="text-xs text-[#86868b] dark:text-[#a1a1a6] mt-1">Total responses</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Scrollable content area */}
+                    <div className="flex-1 overflow-y-auto">
+                      {/* Template fields */}
+                      <div className="border-b border-[#e5e5ea] dark:border-[#3a3a3c]">
+                        <Collapsible>
+                          <CollapsibleTrigger className="w-full p-4 flex items-center justify-between hover:bg-[#f5f5f7] dark:hover:bg-[#3a3a3c] transition-colors">
+                            <h5 className="font-medium text-[#1d1d1f] dark:text-white">Template Fields</h5>
+                            <ChevronDown className="h-4 w-4 text-[#86868b] dark:text-[#a1a1a6] transition-transform duration-200 data-[state=open]:rotate-180" />
+                          </CollapsibleTrigger>
+                          <CollapsibleContent className="p-4 pt-0">
+                            {isLoadingResponses ? (
+                              <div className="p-4 text-center text-[#86868b] dark:text-[#a1a1a6]">
+                                Loading fields...
+                              </div>
+                            ) : selectedTemplate.fields.length === 0 ? (
+                              <div className="p-4 text-center text-[#86868b] dark:text-[#a1a1a6]">
+                                No fields defined
+                              </div>
+                            ) : (
+                              <div className="space-y-3">
+                                {selectedTemplate.fields.map((field, index) => (
+                                  <div
+                                    key={index}
+                                    className="p-4 bg-[#f5f5f7] dark:bg-[#3a3a3c] rounded-lg"
+                                  >
+                                    <div className="flex items-start justify-between">
+                                      <div className="flex-1">
+                                        <div className="flex items-center gap-2">
+                                          <h6 className="font-medium text-[#1d1d1f] dark:text-white">
+                                            {field.name}
+                                          </h6>
+                                          {field.required && (
+                                            <span className="text-xs px-2 py-1 bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400 rounded">
+                                              Required
+                                            </span>
+                                          )}
+                                          <span className="text-xs px-2 py-1 bg-[#e5e5ea] dark:bg-[#4a4a4c] rounded">
+                                            {field.type.replace('_', ' ').toUpperCase()}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
                                   </div>
-                                </div>
+                                ))}
                               </div>
-                            </div>
-                          ))}
-                        </div>
-                      </CollapsibleContent>
-                    </Collapsible>
-                  </div>
+                            )}
+                          </CollapsibleContent>
+                        </Collapsible>
+                      </div>
 
-                  {/* Recent responses */}
-                  <div className="border-t border-[#e5e5ea] dark:border-[#3a3a3c]">
-                    <Collapsible>
-                      <CollapsibleTrigger className="w-full p-4 flex items-center justify-between hover:bg-[#f5f5f7] dark:hover:bg-[#3a3a3c] transition-colors">
-                        <div className="flex items-center gap-2">
-                          <h5 className="font-medium text-[#1d1d1f] dark:text-white">Recent Responses</h5>
-                          <span className="text-sm text-[#86868b] dark:text-[#a1a1a6]">
-                            ({reviews.filter(review => review.template === selectedTemplate.name).length})
-                          </span>
-                        </div>
-                        <ChevronDown className="h-4 w-4 text-[#86868b] dark:text-[#a1a1a6] transition-transform duration-200 data-[state=open]:rotate-180" />
-                      </CollapsibleTrigger>
-                      <CollapsibleContent className="p-4 pt-0">
-                        <div className="space-y-4">
-                          {reviews
-                            .filter(review => review.template === selectedTemplate.name)
-                            .map((review) => (
-                              <div
-                                key={review.id}
-                                className="p-4 bg-[#f5f5f7] dark:bg-[#3a3a3c] rounded-lg cursor-pointer hover:bg-[#e5e5ea] dark:hover:bg-[#4a4a4c] transition-colors"
-                                onClick={() => {
-                                  setSelectedResponse(review);
-                                  setIsResponseDialogOpen(true);
-                                }}
-                              >
-                                <div className="flex justify-between items-center">
-                                  <h6 className="font-medium text-[#1d1d1f] dark:text-white">
-                                    {review.patientName || "Anonymous Feedback"}
-                                  </h6>
-                                  <span className="text-sm text-[#86868b] dark:text-[#a1a1a6]">
-                                    {formatDate(review.timestamp)}
-                                  </span>
-                                </div>
+                      {/* Recent responses */}
+                      <div className="border-t border-[#e5e5ea] dark:border-[#3a3a3c]">
+                        <Collapsible>
+                          <CollapsibleTrigger className="w-full p-4 flex items-center justify-between hover:bg-[#f5f5f7] dark:hover:bg-[#3a3a3c] transition-colors">
+                            <div className="flex items-center gap-2">
+                              <h5 className="font-medium text-[#1d1d1f] dark:text-white">Recent Responses</h5>
+                              <span className="text-sm text-[#86868b] dark:text-[#a1a1a6]">
+                                ({responses.length})
+                              </span>
+                            </div>
+                            <ChevronDown className="h-4 w-4 text-[#86868b] dark:text-[#a1a1a6] transition-transform duration-200 data-[state=open]:rotate-180" />
+                          </CollapsibleTrigger>
+                          <CollapsibleContent className="p-4 pt-0">
+                            {isLoadingResponses ? (
+                              <div className="p-4 text-center text-[#86868b] dark:text-[#a1a1a6]">
+                                Loading responses...
                               </div>
-                            ))}
-                        </div>
-                      </CollapsibleContent>
-                    </Collapsible>
-                  </div>
-                </div>
+                            ) : responses.length === 0 ? (
+                              <div className="p-4 text-center text-[#86868b] dark:text-[#a1a1a6]">
+                                No responses yet
+                              </div>
+                            ) : (
+                              <div className="space-y-4">
+                                {responses.map((response) => (
+                                  <div
+                                    key={response.id}
+                                    className="p-4 bg-[#f5f5f7] dark:bg-[#3a3a3c] rounded-lg cursor-pointer hover:bg-[#e5e5ea] dark:hover:bg-[#4a4a4c] transition-colors"
+                                    onClick={() => {
+                                      setSelectedResponse(response);
+                                      setIsResponseDialogOpen(true);
+                                    }}
+                                  >
+                                    <div className="flex justify-between items-center">
+                                      <h6 className="font-medium text-[#1d1d1f] dark:text-white">
+                                        {response.patientName || "Anonymous Feedback"}
+                                      </h6>
+                                      <span className="text-sm text-[#86868b] dark:text-[#a1a1a6]">
+                                        {response.timestamp}
+                                      </span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </CollapsibleContent>
+                        </Collapsible>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
@@ -1284,11 +1351,15 @@ Thank you for your time.`);
                 Response Details
               </DialogTitle>
               <div className="text-sm text-[#86868b] dark:text-[#a1a1a6]">
-                {selectedResponse?.template} • {formatDate(selectedResponse?.timestamp ?? '')}
+                {selectedResponse?.template} • {selectedResponse?.timestamp ?? ''}
               </div>
             </DialogHeader>
 
-            {selectedResponse && (
+            {isLoadingResponseDetails ? (
+              <div className="flex justify-center py-8">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#73a9e9]"></div>
+              </div>
+            ) : selectedResponse ? (
               <div className="space-y-4 py-4">
                 {selectedResponse.fieldResponses.map((response, index) => (
                   <div key={index} className="space-y-2">
@@ -1318,6 +1389,10 @@ Thank you for your time.`);
                   </div>
                 ))}
               </div>
+            ) : (
+              <div className="py-4 text-center text-[#86868b] dark:text-[#a1a1a6]">
+                No response data available
+              </div>
             )}
           </DialogContent>
         </Dialog>
@@ -1328,17 +1403,9 @@ Thank you for your time.`);
           onOpenChange={(open) => {
             if (open) {
               // Set default content when dialog opens
-              const defaultSubject = `Fill out survey: ${selectedTemplate.name}`;
-              const defaultBody = `Hello,
-
-Please take a moment to fill out our survey. Your feedback is valuable to us.
-
-Click the link below to access the survey:
-https://atlas-ai.com/survey/example
-
-Thank you for your time.`;
+              const defaultSubject = `Fill out survey: ${selectedTemplate?.name || ''}`;
               setEmailSubject(defaultSubject);
-              setEmailBody(defaultBody);
+              // The email body is already set by the useEffect when surveyLink changes
             } else {
               // Reset content when dialog closes
               setEmailToSend("");
@@ -1374,7 +1441,7 @@ Thank you for your time.`;
                   value={emailSubject}
                   onChange={(e) => setEmailSubject(e.target.value)}
                   className="font-medium focus-visible:ring-0 focus-visible:ring-offset-0"
-                  placeholder={`Fill out survey: ${selectedTemplate.name}`}
+                  placeholder={`Fill out survey: ${selectedTemplate?.name || ''}`}
                 />
               </div>
               <div className="space-y-2">
@@ -1384,14 +1451,7 @@ Thank you for your time.`;
                   value={emailBody}
                   onChange={(e) => setEmailBody(e.target.value)}
                   className="min-h-[150px] font-normal focus-visible:ring-0 focus-visible:ring-offset-0 resize-none"
-                  placeholder={`Hello,
-
-Please take a moment to fill out our survey. Your feedback is valuable to us.
-
-Click the link below to access the survey:
-https://atlas-ai.com/survey/example
-
-Thank you for your time.`}
+                  placeholder={`Hello,\n\nPlease take a moment to fill out our survey. Your feedback is valuable to us.\n\nClick the link below to access the survey:\n${surveyLink}\n\nThank you for your time.`}
                 />
               </div>
               <div className="space-y-2">
@@ -1403,17 +1463,10 @@ Thank you for your time.`}
                   </div>
                   <div className="text-sm">
                     <span className="font-medium">Subject: </span>
-                    {emailSubject || `Fill out survey: ${selectedTemplate.name}`}
+                    {emailSubject || `Fill out survey: ${selectedTemplate?.name || ''}`}
                   </div>
                   <div className="text-sm whitespace-pre-wrap">
-                    {emailBody || `Hello,
-
-Please take a moment to fill out our survey. Your feedback is valuable to us.
-
-Click the link below to access the survey:
-https://atlas-ai.com/survey/example
-
-Thank you for your time.`}
+                    {emailBody || `Hello,\n\nPlease take a moment to fill out our survey. Your feedback is valuable to us.\n\nClick the link below to access the survey:\n${surveyLink}\n\nThank you for your time.`}
                   </div>
                 </div>
               </div>
@@ -1556,7 +1609,6 @@ Thank you for your time.`}
                     </div>
                   </div>
                 ))}
-
               </div>
 
               {/* Add New Field Form */}
@@ -1744,7 +1796,6 @@ Thank you for your time.`}
                   >
                     <Plus className="mr-2 h-4 w-4" /> Add Field
                   </Button>
-
                 </div>
               </div>
             </div>
@@ -1775,7 +1826,29 @@ Thank you for your time.`}
                     return;
                   }
 
-                  // Here you would typically make an API call to update the survey
+                  if (!selectedTemplate) return;
+
+                  // Update the template in the state
+                  const updatedTemplate = {
+                    ...selectedTemplate,
+                    name: surveyName,
+                    description: surveyDescription,
+                    fields: formFields.map(field => ({
+                      name: field.label,
+                      type: field.type,
+                      required: field.required,
+                      fieldReference: field.fieldReference
+                    }))
+                  };
+
+                  setTemplatesList(prev =>
+                    prev.map(t => t.id === selectedTemplate.id ? updatedTemplate : t)
+                  );
+                  setFilteredTemplates(prev =>
+                    prev.map(t => t.id === selectedTemplate.id ? updatedTemplate : t)
+                  );
+                  setSelectedTemplate(updatedTemplate);
+
                   toast({
                     title: "Survey updated",
                     description: "Your changes have been saved successfully",
@@ -2009,7 +2082,7 @@ Thank you for your time.`}
             <DialogHeader>
               <DialogTitle>Delete Survey</DialogTitle>
               <DialogDescription>
-                Are you sure you want to delete "{selectedTemplate.name}"? This action cannot be undone.
+                Are you sure you want to delete "{selectedTemplate?.name}"? This action cannot be undone.
               </DialogDescription>
             </DialogHeader>
             <div className="flex justify-end gap-3 pt-4">
@@ -2031,4 +2104,4 @@ Thank you for your time.`}
       </main>
     </DoctorLayoutWrapper>
   )
-} 
+}
