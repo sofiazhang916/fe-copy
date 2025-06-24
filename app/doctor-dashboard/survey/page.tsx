@@ -404,12 +404,29 @@ export default function ReviewPage() {
     setSearchQuery("")
   }
 
+  const resetCreateSurveyForm = () => {
+    setSurveyName("")
+    setSurveyDescription("")
+    setFormFields([])
+    setSelectedFieldType('short_text')
+    setNewFieldLabel("")
+    setNewFieldReference("")
+    setNewFieldDescription("")
+    setIsRequired(false)
+    setConstraints({})
+  }
+
+  // Auto-generate field reference from field label
+  const generateFieldReference = (label: string) => {
+    return label.trim().toLowerCase().replace(/\s+/g, '_');
+  }
+
   const addNewField = () => {
     const newField: FormField = {
       id: Math.random().toString(36).substr(2, 9),
       type: selectedFieldType,
       label: newFieldLabel,
-      fieldReference: newFieldReference,
+      fieldReference: generateFieldReference(newFieldLabel),
       required: isRequired,
       description: newFieldDescription,
       constraints: ['long_text', 'email', 'phone'].includes(selectedFieldType) ? undefined : constraints
@@ -646,7 +663,7 @@ Thank you for your time.`);
               Manage and analyze patient feedback, track satisfaction metrics, and improve care quality through comprehensive review management.
             </p>
 
-            <div className="flex h-[calc(100vh-190px)]">
+            <div className="flex h-[calc(100vh-240px)]">
               {/* Templates list */}
               <div className="w-1/3 bg-white dark:bg-[#2c2c2e] rounded-l-lg shadow-sm border border-[#e5e5ea] dark:border-[#3a3a3c] border-r-0 flex flex-col">
                 <div className="p-4 border-b border-[#e5e5ea] dark:border-[#3a3a3c] flex-shrink-0">
@@ -707,7 +724,15 @@ Thank you for your time.`);
                         </div>
                       ))}
                       <div className="p-4 flex justify-center">
-                        <Dialog open={isCreateSurveyOpen} onOpenChange={setIsCreateSurveyOpen}>
+                        <Dialog
+                          open={isCreateSurveyOpen}
+                          onOpenChange={(open) => {
+                            if (open) {
+                              resetCreateSurveyForm()
+                            }
+                            setIsCreateSurveyOpen(open)
+                          }}
+                        >
                           <DialogTrigger asChild>
                             <Button className="w-64 bg-[#f5f5f7] dark:bg-[#3a3a3c] text-[#1d1d1f] dark:text-white hover:bg-[#e5e5ea] dark:hover:bg-[#3a3a3c] rounded-lg h-10 text-base font-medium focus-visible:ring-0 focus-visible:ring-offset-0">
                               <Plus className="mr-2 h-4 w-4" /> Create New Survey
@@ -731,6 +756,9 @@ Thank you for your time.`);
                                     onChange={(e) => setSurveyName(e.target.value)}
                                     className="w-full"
                                   />
+                                  {!surveyName.trim() && (
+                                    <p className="text-sm text-red-500 mt-2">Please enter a survey name</p>
+                                  )}
                                 </div>
                                 <div className="grid gap-2">
                                   <Label htmlFor="surveyDescription" className="text-base font-medium">
@@ -830,16 +858,6 @@ Thank you for your time.`);
                                       value={newFieldLabel}
                                       onChange={(e) => setNewFieldLabel(e.target.value)}
                                     />
-                                  </div>
-
-                                  <div className="grid gap-2">
-                                    <Label>Field Reference</Label>
-                                    <Input
-                                      placeholder="Enter field reference (e.g., patient_name, visit_date)"
-                                      value={newFieldReference}
-                                      onChange={(e) => setNewFieldReference(e.target.value)}
-                                    />
-                                    <p className="text-xs text-[#86868b]">Use lowercase with underscores (e.g., patient_name)</p>
                                   </div>
 
                                   <div className="grid gap-2">
@@ -987,6 +1005,9 @@ Thank you for your time.`);
                                   >
                                     <Plus className="mr-2 h-4 w-4" /> Add Field
                                   </Button>
+                                  {formFields.length === 0 && (
+                                    <p className="text-sm text-red-500 mt-2">Please add at least one field to your survey</p>
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -996,14 +1017,7 @@ Thank you for your time.`);
                                 variant="outline"
                                 onClick={() => {
                                   setIsCreateSurveyOpen(false);
-                                  setFormFields([]);
-                                  setSurveyName("");
-                                  setSurveyDescription("");
-                                  setNewFieldLabel("");
-                                  setNewFieldReference("");
-                                  setNewFieldDescription("");
-                                  setIsRequired(false);
-                                  setConstraints({});
+                                  resetCreateSurveyForm();
                                 }}
                               >
                                 Cancel
@@ -1056,14 +1070,7 @@ Thank you for your time.`);
 
                                   // Reset form and close modal
                                   setIsCreateSurveyOpen(false);
-                                  setFormFields([]);
-                                  setSurveyName("");
-                                  setSurveyDescription("");
-                                  setNewFieldLabel("");
-                                  setNewFieldReference("");
-                                  setNewFieldDescription("");
-                                  setIsRequired(false);
-                                  setConstraints({});
+                                  resetCreateSurveyForm();
                                 }}
                                 disabled={!surveyName.trim() || formFields.length === 0}
                               >
@@ -1072,12 +1079,12 @@ Thank you for your time.`);
                             </div>
 
                             {/* Add validation feedback */}
-                            {!surveyName.trim() && (
+                            {/* {!surveyName.trim() && (
                               <p className="text-sm text-red-500 mt-2">Please enter a survey name</p>
-                            )}
-                            {formFields.length === 0 && (
+                            )} */}
+                            {/* {formFields.length === 0 && (
                               <p className="text-sm text-red-500 mt-2">Please add at least one field to your survey</p>
-                            )}
+                            )} */}
                           </DialogContent>
                         </Dialog>
                       </div>
@@ -1258,7 +1265,7 @@ Thank you for your time.`);
             </div>
 
             {/* Footer */}
-            <div className="mt-8 py-12 border-t border-[#e5e5ea] dark:border-[#3a3a3c] text-center flex flex-col items-center">
+            <div className="mt-8 pt-4 border-t border-[#e5e5ea] dark:border-[#3a3a3c] text-center">
               <p className="text-xs text-[#86868b] dark:text-[#a1a1a6]">
                 © 2025 Atlas AI • <span className="hover:underline cursor-pointer">Help</span> •
                 <span className="hover:underline cursor-pointer"> Terms</span> •
@@ -1268,62 +1275,61 @@ Thank you for your time.`);
             </div>
           </div>
         </div>
-      </main>
 
-      {/* Response Detail Dialog */}
-      <Dialog open={isResponseDialogOpen} onOpenChange={setIsResponseDialogOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-semibold">
-              Response Details
-            </DialogTitle>
-            <div className="text-sm text-[#86868b] dark:text-[#a1a1a6]">
-              {selectedResponse?.template} • {formatDate(selectedResponse?.timestamp ?? '')}
-            </div>
-          </DialogHeader>
+        {/* Response Detail Dialog */}
+        <Dialog open={isResponseDialogOpen} onOpenChange={setIsResponseDialogOpen}>
+          <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-semibold">
+                Response Details
+              </DialogTitle>
+              <div className="text-sm text-[#86868b] dark:text-[#a1a1a6]">
+                {selectedResponse?.template} • {formatDate(selectedResponse?.timestamp ?? '')}
+              </div>
+            </DialogHeader>
 
-          {selectedResponse && (
-            <div className="space-y-4 py-4">
-              {selectedResponse.fieldResponses.map((response, index) => (
-                <div key={index} className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm font-medium text-[#1d1d1f] dark:text-white">
-                      {response.fieldName}
-                    </Label>
-                    <span className="text-xs text-[#86868b] dark:text-[#a1a1a6]">
-                      {response.fieldReference}
-                    </span>
+            {selectedResponse && (
+              <div className="space-y-4 py-4">
+                {selectedResponse.fieldResponses.map((response, index) => (
+                  <div key={index} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-medium text-[#1d1d1f] dark:text-white">
+                        {response.fieldName}
+                      </Label>
+                      <span className="text-xs text-[#86868b] dark:text-[#a1a1a6]">
+                        {response.fieldReference}
+                      </span>
+                    </div>
+                    <div className="p-3 bg-[#f5f5f7] dark:bg-[#3a3a3c] rounded-lg">
+                      {Array.isArray(response.value) ? (
+                        <ul className="list-disc list-inside space-y-1">
+                          {response.value.map((item, i) => (
+                            <li key={i} className="text-sm text-[#1d1d1f] dark:text-white">
+                              {item}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-sm text-[#1d1d1f] dark:text-white">
+                          {response.value?.toString() ?? 'Not provided'}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <div className="p-3 bg-[#f5f5f7] dark:bg-[#3a3a3c] rounded-lg">
-                    {Array.isArray(response.value) ? (
-                      <ul className="list-disc list-inside space-y-1">
-                        {response.value.map((item, i) => (
-                          <li key={i} className="text-sm text-[#1d1d1f] dark:text-white">
-                            {item}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="text-sm text-[#1d1d1f] dark:text-white">
-                        {response.value?.toString() ?? 'Not provided'}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+                ))}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
-      {/* Send Survey Dialog */}
-      <Dialog
-        open={isSendSurveyOpen}
-        onOpenChange={(open) => {
-          if (open) {
-            // Set default content when dialog opens
-            const defaultSubject = `Fill out survey: ${selectedTemplate.name}`;
-            const defaultBody = `Hello,
+        {/* Send Survey Dialog */}
+        <Dialog
+          open={isSendSurveyOpen}
+          onOpenChange={(open) => {
+            if (open) {
+              // Set default content when dialog opens
+              const defaultSubject = `Fill out survey: ${selectedTemplate.name}`;
+              const defaultBody = `Hello,
 
 Please take a moment to fill out our survey. Your feedback is valuable to us.
 
@@ -1331,717 +1337,698 @@ Click the link below to access the survey:
 https://atlas-ai.com/survey/example
 
 Thank you for your time.`;
-            setEmailSubject(defaultSubject);
-            setEmailBody(defaultBody);
-          } else {
-            // Reset content when dialog closes
-            setEmailToSend("");
-            setEmailSubject("");
-            setEmailBody("");
-          }
-          setIsSendSurveyOpen(open);
-        }}
-      >
-        <DialogContent className="sm:max-w-[600px] max-h-[80vh] flex flex-col">
-          <DialogHeader className="flex-shrink-0">
-            <DialogTitle>Send Survey</DialogTitle>
-            <DialogDescription>
-              Send this survey to a patient or colleague
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4 overflow-y-auto flex-1">
-            <div className="space-y-2">
-              <Label htmlFor="email">Recipient Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="Enter recipient's email"
-                value={emailToSend}
-                onChange={(e) => setEmailToSend(e.target.value)}
-                className="focus-visible:ring-0 focus-visible:ring-offset-0"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="subject">Email Subject</Label>
-              <Input
-                id="subject"
-                value={emailSubject}
-                onChange={(e) => setEmailSubject(e.target.value)}
-                className="font-medium focus-visible:ring-0 focus-visible:ring-offset-0"
-                placeholder={`Fill out survey: ${selectedTemplate.name}`}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="body">Email Body</Label>
-              <Textarea
-                id="body"
-                value={emailBody}
-                onChange={(e) => setEmailBody(e.target.value)}
-                className="min-h-[150px] font-normal focus-visible:ring-0 focus-visible:ring-offset-0 resize-none"
-                placeholder={`Hello,
-
-Please take a moment to fill out our survey. Your feedback is valuable to us.
-
-Click the link below to access the survey:
-https://atlas-ai.com/survey/example
-
-Thank you for your time.`}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Preview</Label>
-              <div className="p-3 bg-[#f5f5f7] dark:bg-[#3a3a3c] rounded-lg space-y-2">
-                <div className="text-sm">
-                  <span className="font-medium">To: </span>
-                  {emailToSend || "recipient@example.com"}
-                </div>
-                <div className="text-sm">
-                  <span className="font-medium">Subject: </span>
-                  {emailSubject || `Fill out survey: ${selectedTemplate.name}`}
-                </div>
-                <div className="text-sm whitespace-pre-wrap">
-                  {emailBody || `Hello,
-
-Please take a moment to fill out our survey. Your feedback is valuable to us.
-
-Click the link below to access the survey:
-https://atlas-ai.com/survey/example
-
-Thank you for your time.`}
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="flex justify-end gap-3 pt-4 border-t flex-shrink-0">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setIsSendSurveyOpen(false);
-                setEmailToSend("");
-                setEmailSubject("");
-                setEmailBody("");
-              }}
-              className="focus-visible:ring-0 focus-visible:ring-offset-0"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={() => {
-                if (!emailToSend.trim()) {
-                  toast({
-                    title: "Email required",
-                    description: "Please enter an email address to send the survey",
-                    variant: "destructive",
-                  });
-                  return;
-                }
-                if (!emailSubject.trim()) {
-                  toast({
-                    title: "Subject required",
-                    description: "Please enter an email subject",
-                    variant: "destructive",
-                  });
-                  return;
-                }
-                if (!emailBody.trim()) {
-                  toast({
-                    title: "Body required",
-                    description: "Please enter an email body",
-                    variant: "destructive",
-                  });
-                  return;
-                }
-
-                // Here you would typically make an API call to send the survey
-                console.log("Sending survey to:", emailToSend);
-                toast({
-                  title: "Survey sent",
-                  description: `Survey has been sent to ${emailToSend}`,
-                });
-                setIsSendSurveyOpen(false);
-                setEmailToSend("");
-                setEmailSubject("");
-                setEmailBody("");
-              }}
-              className="bg-[#73a9e9] hover:bg-[#5d8fd1] text-white focus-visible:ring-0 focus-visible:ring-offset-0"
-            >
-              Send Survey
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Survey Dialog */}
-      <Dialog open={isEditSurveyOpen} onOpenChange={setIsEditSurveyOpen}>
-        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-semibold">Edit Survey</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-6 py-4">
-            {/* Survey Basic Info */}
-            <div className="space-y-4">
-              <div className="grid gap-2">
-                <Label htmlFor="surveyName" className="text-base font-medium">
-                  Survey Name
-                </Label>
+              setEmailSubject(defaultSubject);
+              setEmailBody(defaultBody);
+            } else {
+              // Reset content when dialog closes
+              setEmailToSend("");
+              setEmailSubject("");
+              setEmailBody("");
+            }
+            setIsSendSurveyOpen(open);
+          }}
+        >
+          <DialogContent className="sm:max-w-[600px] max-h-[80vh] flex flex-col">
+            <DialogHeader className="flex-shrink-0">
+              <DialogTitle>Send Survey</DialogTitle>
+              <DialogDescription>
+                Send this survey to a patient or colleague
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4 overflow-y-auto flex-1">
+              <div className="space-y-2">
+                <Label htmlFor="email">Recipient Email</Label>
                 <Input
-                  id="surveyName"
-                  placeholder="Enter survey name"
-                  value={surveyName}
-                  onChange={(e) => setSurveyName(e.target.value)}
-                  className="w-full focus-visible:ring-0 focus-visible:ring-offset-0"
+                  id="email"
+                  type="email"
+                  placeholder="Enter recipient's email"
+                  value={emailToSend}
+                  onChange={(e) => setEmailToSend(e.target.value)}
+                  className="focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="surveyDescription" className="text-base font-medium">
-                  Description
-                </Label>
+              <div className="space-y-2">
+                <Label htmlFor="subject">Email Subject</Label>
+                <Input
+                  id="subject"
+                  value={emailSubject}
+                  onChange={(e) => setEmailSubject(e.target.value)}
+                  className="font-medium focus-visible:ring-0 focus-visible:ring-offset-0"
+                  placeholder={`Fill out survey: ${selectedTemplate.name}`}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="body">Email Body</Label>
                 <Textarea
-                  id="surveyDescription"
-                  placeholder="Enter survey description"
-                  value={surveyDescription}
-                  onChange={(e) => setSurveyDescription(e.target.value)}
-                  className="w-full min-h-[100px] focus-visible:ring-0 focus-visible:ring-offset-0 resize-none"
+                  id="body"
+                  value={emailBody}
+                  onChange={(e) => setEmailBody(e.target.value)}
+                  className="min-h-[150px] font-normal focus-visible:ring-0 focus-visible:ring-offset-0 resize-none"
+                  placeholder={`Hello,
+
+Please take a moment to fill out our survey. Your feedback is valuable to us.
+
+Click the link below to access the survey:
+https://atlas-ai.com/survey/example
+
+Thank you for your time.`}
                 />
               </div>
-            </div>
+              <div className="space-y-2">
+                <Label>Preview</Label>
+                <div className="p-3 bg-[#f5f5f7] dark:bg-[#3a3a3c] rounded-lg space-y-2">
+                  <div className="text-sm">
+                    <span className="font-medium">To: </span>
+                    {emailToSend || "recipient@example.com"}
+                  </div>
+                  <div className="text-sm">
+                    <span className="font-medium">Subject: </span>
+                    {emailSubject || `Fill out survey: ${selectedTemplate.name}`}
+                  </div>
+                  <div className="text-sm whitespace-pre-wrap">
+                    {emailBody || `Hello,
 
-            {/* Form Fields List */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium">Survey Fields</h3>
-              {formFields.map((field, index) => (
-                <div key={field.id} className="p-4 bg-[#f5f5f7] dark:bg-[#3a3a3c] rounded-lg">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <GripVertical className="h-4 w-4 text-[#86868b]" />
-                        <h4 className="font-medium">{field.label}</h4>
-                        {field.required && (
-                          <span className="text-xs px-2 py-1 bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400 rounded">
-                            Required
-                          </span>
-                        )}
-                        <span className="text-xs px-2 py-1 bg-[#e5e5ea] dark:bg-[#4a4a4c] rounded">
-                          {field.type.replace('_', ' ').toUpperCase()}
-                        </span>
-                      </div>
-                      <p className="text-sm text-[#86868b] mt-1">{field.description}</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleEditField(field)}
-                        className="h-8 w-8 text-[#86868b] hover:text-[#1d1d1f] dark:hover:text-white focus-visible:ring-0 focus-visible:ring-offset-0"
-                        title="Edit Field"
-                      >
-                        <Settings className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeField(field.id)}
-                        className="h-8 w-8 text-[#86868b] hover:text-red-500 focus-visible:ring-0 focus-visible:ring-offset-0"
-                        title="Remove Field"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+Please take a moment to fill out our survey. Your feedback is valuable to us.
+
+Click the link below to access the survey:
+https://atlas-ai.com/survey/example
+
+Thank you for your time.`}
                   </div>
                 </div>
-              ))}
-            </div>
-
-            {/* Add New Field Form */}
-            <div className="space-y-4 border-t pt-4">
-              <h3 className="text-lg font-medium">Add New Field</h3>
-              <div className="grid gap-4">
-                <div className="grid gap-2">
-                  <Label>Field Type</Label>
-                  <Select
-                    value={selectedFieldType}
-                    onValueChange={(value: FormField['type']) => {
-                      setSelectedFieldType(value);
-                      // Reset constraints when field type changes
-                      setConstraints({});
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select field type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="short_text">Short Text</SelectItem>
-                      <SelectItem value="long_text">Long Text</SelectItem>
-                      <SelectItem value="number">Number</SelectItem>
-                      <SelectItem value="yes_no">Yes/No</SelectItem>
-                      <SelectItem value="multiple_choice">Multiple Choice</SelectItem>
-                      <SelectItem value="dropdown">Dropdown</SelectItem>
-                      <SelectItem value="rating">Rating</SelectItem>
-                      <SelectItem value="email">Email</SelectItem>
-                      <SelectItem value="phone">Phone Number</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="grid gap-2">
-                  <Label>Field Label</Label>
-                  <Input
-                    placeholder="Enter field label"
-                    value={newFieldLabel}
-                    onChange={(e) => setNewFieldLabel(e.target.value)}
-                  />
-                </div>
-
-                <div className="grid gap-2">
-                  <Label>Field Reference</Label>
-                  <Input
-                    placeholder="Enter field reference (e.g., patient_name, visit_date)"
-                    value={newFieldReference}
-                    onChange={(e) => setNewFieldReference(e.target.value)}
-                  />
-                  <p className="text-xs text-[#86868b]">Use lowercase with underscores (e.g., patient_name)</p>
-                </div>
-
-                <div className="grid gap-2">
-                  <Label>Description (Optional)</Label>
-                  <Input
-                    placeholder="Enter field description"
-                    value={newFieldDescription}
-                    onChange={(e) => setNewFieldDescription(e.target.value)}
-                  />
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="required"
-                    checked={isRequired}
-                    onCheckedChange={setIsRequired}
-                  />
-                  <Label htmlFor="required">Required Field</Label>
-                </div>
-
-                {/* Field Type Specific Constraints */}
-                {selectedFieldType === 'short_text' && (
-                  <div className="grid gap-2">
-                    <Label>Maximum Length</Label>
-                    <Input
-                      type="number"
-                      placeholder="Max length (max 999)"
-                      value={constraints?.max_length ?? ''}
-                      onChange={(e) => {
-                        const value = Math.min(Math.max(Number(e.target.value), 1), 999);
-                        setConstraints({ ...constraints ?? {}, max_length: value });
-                      }}
-                    />
-                    <p className="text-xs text-[#86868b]">Maximum length: 1-999 characters</p>
-                  </div>
-                )}
-
-                {selectedFieldType === 'number' && (
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <Label>Minimum Value</Label>
-                      <Input
-                        type="number"
-                        placeholder="Min value"
-                        value={constraints?.min_value ?? ''}
-                        onChange={(e) => setConstraints({ ...constraints ?? {}, min_value: Number(e.target.value) })}
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label>Maximum Value</Label>
-                      <Input
-                        type="number"
-                        placeholder="Max value"
-                        value={constraints?.max_value ?? ''}
-                        onChange={(e) => setConstraints({ ...constraints ?? {}, max_value: Number(e.target.value) })}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {(selectedFieldType === 'multiple_choice' || selectedFieldType === 'dropdown') && (
-                  <>
-                    <div className="grid gap-2">
-                      <Label>Options (minimum 2 choices, one per line)</Label>
-                      <Textarea
-                        placeholder="Enter options"
-                        value={constraints?.options?.join('\n') ?? ''}
-                        onChange={(e) => {
-                          const options = e.target.value.split('\n').filter(opt => opt.trim());
-                          setConstraints({
-                            ...constraints ?? {},
-                            options: options.length >= 2 ? options : constraints?.options
-                          });
-                        }}
-                        className="min-h-[100px]"
-                      />
-                      {constraints?.options && constraints.options.length < 2 && (
-                        <p className="text-sm text-red-500">Minimum 2 choices required</p>
-                      )}
-                    </div>
-
-                    {selectedFieldType === 'multiple_choice' && (
-                      <div className="space-y-4">
-                        <div className="flex items-center space-x-2">
-                          <Switch
-                            id="allow_multiple"
-                            checked={constraints?.allow_multiple ?? false}
-                            onCheckedChange={(checked) => setConstraints({
-                              ...constraints ?? {},
-                              allow_multiple: checked
-                            })}
-                          />
-                          <Label htmlFor="allow_multiple">Allow Multiple Selections</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Switch
-                            id="randomize"
-                            checked={constraints?.randomize ?? false}
-                            onCheckedChange={(checked) => setConstraints({
-                              ...constraints ?? {},
-                              randomize: checked
-                            })}
-                          />
-                          <Label htmlFor="randomize">Randomize Choices</Label>
-                        </div>
-                      </div>
-                    )}
-
-                    {selectedFieldType === 'dropdown' && (
-                      <div className="flex items-center space-x-2">
-                        <Switch
-                          id="alphabetical_order"
-                          checked={constraints?.alphabetical_order ?? false}
-                          onCheckedChange={(checked) => setConstraints({
-                            ...constraints ?? {},
-                            alphabetical_order: checked
-                          })}
-                        />
-                        <Label htmlFor="alphabetical_order">Display in Alphabetical Order</Label>
-                      </div>
-                    )}
-                  </>
-                )}
-
-                {selectedFieldType === 'rating' && (
-                  <div className="grid gap-2">
-                    <Label>Steps (2-10)</Label>
-                    <Input
-                      type="number"
-                      placeholder="Number of steps"
-                      value={constraints?.steps ?? ''}
-                      onChange={(e) => {
-                        const value = Math.min(Math.max(Number(e.target.value), 2), 10);
-                        setConstraints({ ...constraints ?? {}, steps: value });
-                      }}
-                    />
-                    <p className="text-xs text-[#86868b]">Number of steps: 2-10</p>
-                  </div>
-                )}
-
-                <Button
-                  onClick={addNewField}
-                  className="w-full bg-[#f5f5f7] dark:bg-[#3a3a3c] text-[#1d1d1f] dark:text-white hover:bg-[#e5e5ea] dark:hover:bg-[#3a3a3c] rounded-lg h-10 text-base font-medium focus-visible:ring-0 focus-visible:ring-offset-0"
-                  disabled={!newFieldLabel}
-                >
-                  <Plus className="mr-2 h-4 w-4" /> Add Field
-                </Button>
               </div>
             </div>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4 border-t">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setIsEditSurveyOpen(false);
-                // Reset form state
-                setFormFields([]);
-                setSurveyName("");
-                setSurveyDescription("");
-              }}
-              className="focus-visible:ring-0 focus-visible:ring-offset-0"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={() => {
-                // Validate and save changes
-                if (!surveyName.trim()) {
-                  toast({
-                    title: "Survey name required",
-                    description: "Please enter a name for your survey",
-                    variant: "destructive",
-                  });
-                  return;
-                }
-
-                // Here you would typically make an API call to update the survey
-                toast({
-                  title: "Survey updated",
-                  description: "Your changes have been saved successfully",
-                });
-                setIsEditSurveyOpen(false);
-              }}
-              className="bg-[#73a9e9] hover:bg-[#5d8fd1] text-white focus-visible:ring-0 focus-visible:ring-offset-0"
-            >
-              Save Changes
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Field Dialog */}
-      <Dialog open={isEditFieldOpen} onOpenChange={setIsEditFieldOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit Field</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-6 py-4">
-            <div className="grid gap-2">
-              <Label>Field Type</Label>
-              <Select
-                value={selectedFieldType}
-                onValueChange={(value: FormField['type']) => {
-                  setSelectedFieldType(value);
-                  // Reset constraints when field type changes
-                  setConstraints({});
-                }}
-              >
-                <SelectTrigger className="focus-visible:ring-0 focus-visible:ring-offset-0">
-                  <SelectValue placeholder="Select field type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="short_text">Short Text</SelectItem>
-                  <SelectItem value="long_text">Long Text</SelectItem>
-                  <SelectItem value="number">Number</SelectItem>
-                  <SelectItem value="yes_no">Yes/No</SelectItem>
-                  <SelectItem value="multiple_choice">Multiple Choice</SelectItem>
-                  <SelectItem value="dropdown">Dropdown</SelectItem>
-                  <SelectItem value="rating">Rating</SelectItem>
-                  <SelectItem value="email">Email</SelectItem>
-                  <SelectItem value="phone">Phone Number</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid gap-2">
-              <Label>Field Label</Label>
-              <Input
-                placeholder="Enter field label"
-                value={newFieldLabel}
-                onChange={(e) => setNewFieldLabel(e.target.value)}
-                className="focus-visible:ring-0 focus-visible:ring-offset-0"
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <Label>Field Reference</Label>
-              <Input
-                placeholder="Enter field reference (e.g., patient_name, visit_date)"
-                value={newFieldReference}
-                onChange={(e) => setNewFieldReference(e.target.value)}
-                className="focus-visible:ring-0 focus-visible:ring-offset-0"
-              />
-              <p className="text-xs text-[#86868b]">Use lowercase with underscores (e.g., patient_name)</p>
-            </div>
-
-            <div className="grid gap-2">
-              <Label>Description (Optional)</Label>
-              <Input
-                placeholder="Enter field description"
-                value={newFieldDescription}
-                onChange={(e) => setNewFieldDescription(e.target.value)}
-                className="focus-visible:ring-0 focus-visible:ring-offset-0"
-              />
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="required"
-                checked={isRequired}
-                onCheckedChange={setIsRequired}
-              />
-              <Label htmlFor="required">Required Field</Label>
-            </div>
-
-            {/* Field Type Specific Constraints */}
-            {selectedFieldType === 'short_text' && (
-              <div className="grid gap-2">
-                <Label>Maximum Length</Label>
-                <Input
-                  type="number"
-                  placeholder="Max length (max 999)"
-                  value={constraints?.max_length ?? ''}
-                  onChange={(e) => {
-                    const value = Math.min(Math.max(Number(e.target.value), 1), 999);
-                    setConstraints({ ...constraints ?? {}, max_length: value });
-                  }}
-                />
-                <p className="text-xs text-[#86868b]">Maximum length: 1-999 characters</p>
-              </div>
-            )}
-
-            {selectedFieldType === 'number' && (
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label>Minimum Value</Label>
-                  <Input
-                    type="number"
-                    placeholder="Min value"
-                    value={constraints?.min_value ?? ''}
-                    onChange={(e) => setConstraints({ ...constraints ?? {}, min_value: Number(e.target.value) })}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label>Maximum Value</Label>
-                  <Input
-                    type="number"
-                    placeholder="Max value"
-                    value={constraints?.max_value ?? ''}
-                    onChange={(e) => setConstraints({ ...constraints ?? {}, max_value: Number(e.target.value) })}
-                  />
-                </div>
-              </div>
-            )}
-
-            {(selectedFieldType === 'multiple_choice' || selectedFieldType === 'dropdown') && (
-              <>
-                <div className="grid gap-2">
-                  <Label>Options (minimum 2 choices, one per line)</Label>
-                  <Textarea
-                    placeholder="Enter options"
-                    value={constraints?.options?.join('\n') ?? ''}
-                    onChange={(e) => {
-                      const options = e.target.value.split('\n').filter(opt => opt.trim());
-                      setConstraints({
-                        ...constraints ?? {},
-                        options: options.length >= 2 ? options : constraints?.options
-                      });
-                    }}
-                    className="min-h-[100px]"
-                  />
-                  {constraints?.options && constraints.options.length < 2 && (
-                    <p className="text-sm text-red-500">Minimum 2 choices required</p>
-                  )}
-                </div>
-
-                {selectedFieldType === 'multiple_choice' && (
-                  <div className="space-y-4">
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id="allow_multiple"
-                        checked={constraints?.allow_multiple ?? false}
-                        onCheckedChange={(checked) => setConstraints({
-                          ...constraints ?? {},
-                          allow_multiple: checked
-                        })}
-                      />
-                      <Label htmlFor="allow_multiple">Allow Multiple Selections</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id="randomize"
-                        checked={constraints?.randomize ?? false}
-                        onCheckedChange={(checked) => setConstraints({
-                          ...constraints ?? {},
-                          randomize: checked
-                        })}
-                      />
-                      <Label htmlFor="randomize">Randomize Choices</Label>
-                    </div>
-                  </div>
-                )}
-
-                {selectedFieldType === 'dropdown' && (
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="alphabetical_order"
-                      checked={constraints?.alphabetical_order ?? false}
-                      onCheckedChange={(checked) => setConstraints({
-                        ...constraints ?? {},
-                        alphabetical_order: checked
-                      })}
-                    />
-                    <Label htmlFor="alphabetical_order">Display in Alphabetical Order</Label>
-                  </div>
-                )}
-              </>
-            )}
-
-            {selectedFieldType === 'rating' && (
-              <div className="grid gap-2">
-                <Label>Steps (2-10)</Label>
-                <Input
-                  type="number"
-                  placeholder="Number of steps"
-                  value={constraints?.steps ?? ''}
-                  onChange={(e) => {
-                    const value = Math.min(Math.max(Number(e.target.value), 2), 10);
-                    setConstraints({ ...constraints ?? {}, steps: value });
-                  }}
-                />
-                <p className="text-xs text-[#86868b]">Number of steps: 2-10</p>
-              </div>
-            )}
-
-            <div className="flex justify-end gap-3 pt-4 border-t">
+            <div className="flex justify-end gap-3 pt-4 border-t flex-shrink-0">
               <Button
                 variant="outline"
                 onClick={() => {
-                  setIsEditFieldOpen(false);
-                  // Reset form state
-                  setEditingField(null);
-                  setSelectedFieldType('short_text');
-                  setNewFieldLabel('');
-                  setNewFieldReference('');
-                  setNewFieldDescription('');
-                  setIsRequired(false);
-                  setConstraints({});
+                  setIsSendSurveyOpen(false);
+                  setEmailToSend("");
+                  setEmailSubject("");
+                  setEmailBody("");
                 }}
                 className="focus-visible:ring-0 focus-visible:ring-offset-0"
               >
                 Cancel
               </Button>
               <Button
-                onClick={saveEditedField}
-                disabled={!newFieldLabel.trim()}
+                onClick={() => {
+                  if (!emailToSend.trim()) {
+                    toast({
+                      title: "Email required",
+                      description: "Please enter an email address to send the survey",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  if (!emailSubject.trim()) {
+                    toast({
+                      title: "Subject required",
+                      description: "Please enter an email subject",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  if (!emailBody.trim()) {
+                    toast({
+                      title: "Body required",
+                      description: "Please enter an email body",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+
+                  // Here you would typically make an API call to send the survey
+                  console.log("Sending survey to:", emailToSend);
+                  toast({
+                    title: "Survey sent",
+                    description: `Survey has been sent to ${emailToSend}`,
+                  });
+                  setIsSendSurveyOpen(false);
+                  setEmailToSend("");
+                  setEmailSubject("");
+                  setEmailBody("");
+                }}
+                className="bg-[#73a9e9] hover:bg-[#5d8fd1] text-white focus-visible:ring-0 focus-visible:ring-offset-0"
+              >
+                Send Survey
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Survey Dialog */}
+        <Dialog open={isEditSurveyOpen} onOpenChange={setIsEditSurveyOpen}>
+          <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-semibold">Edit Survey</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-6 py-4">
+              {/* Survey Basic Info */}
+              <div className="space-y-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="surveyName" className="text-base font-medium">
+                    Survey Name
+                  </Label>
+                  <Input
+                    id="surveyName"
+                    placeholder="Enter survey name"
+                    value={surveyName}
+                    onChange={(e) => setSurveyName(e.target.value)}
+                    className="w-full focus-visible:ring-0 focus-visible:ring-offset-0"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="surveyDescription" className="text-base font-medium">
+                    Description
+                  </Label>
+                  <Textarea
+                    id="surveyDescription"
+                    placeholder="Enter survey description"
+                    value={surveyDescription}
+                    onChange={(e) => setSurveyDescription(e.target.value)}
+                    className="w-full min-h-[100px] focus-visible:ring-0 focus-visible:ring-offset-0 resize-none"
+                  />
+                </div>
+              </div>
+
+              {/* Form Fields List */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Survey Fields</h3>
+                {formFields.map((field, index) => (
+                  <div key={field.id} className="p-4 bg-[#f5f5f7] dark:bg-[#3a3a3c] rounded-lg">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <GripVertical className="h-4 w-4 text-[#86868b]" />
+                          <h4 className="font-medium">{field.label}</h4>
+                          {field.required && (
+                            <span className="text-xs px-2 py-1 bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400 rounded">
+                              Required
+                            </span>
+                          )}
+                          <span className="text-xs px-2 py-1 bg-[#e5e5ea] dark:bg-[#4a4a4c] rounded">
+                            {field.type.replace('_', ' ').toUpperCase()}
+                          </span>
+                        </div>
+                        <p className="text-sm text-[#86868b] mt-1">{field.description}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEditField(field)}
+                          className="h-8 w-8 text-[#86868b] hover:text-[#1d1d1f] dark:hover:text-white focus-visible:ring-0 focus-visible:ring-offset-0"
+                          title="Edit Field"
+                        >
+                          <Settings className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeField(field.id)}
+                          className="h-8 w-8 text-[#86868b] hover:text-red-500 focus-visible:ring-0 focus-visible:ring-offset-0"
+                          title="Remove Field"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+              </div>
+
+              {/* Add New Field Form */}
+              <div className="space-y-4 border-t pt-4">
+                <h3 className="text-lg font-medium">Add New Field</h3>
+                <div className="grid gap-4">
+                  <div className="grid gap-2">
+                    <Label>Field Type</Label>
+                    <Select
+                      value={selectedFieldType}
+                      onValueChange={(value: FormField['type']) => {
+                        setSelectedFieldType(value);
+                        // Reset constraints when field type changes
+                        setConstraints({});
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select field type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="short_text">Short Text</SelectItem>
+                        <SelectItem value="long_text">Long Text</SelectItem>
+                        <SelectItem value="number">Number</SelectItem>
+                        <SelectItem value="yes_no">Yes/No</SelectItem>
+                        <SelectItem value="multiple_choice">Multiple Choice</SelectItem>
+                        <SelectItem value="dropdown">Dropdown</SelectItem>
+                        <SelectItem value="rating">Rating</SelectItem>
+                        <SelectItem value="email">Email</SelectItem>
+                        <SelectItem value="phone">Phone Number</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label>Field Label</Label>
+                    <Input
+                      placeholder="Enter field label"
+                      value={newFieldLabel}
+                      onChange={(e) => setNewFieldLabel(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label>Description (Optional)</Label>
+                    <Input
+                      placeholder="Enter field description"
+                      value={newFieldDescription}
+                      onChange={(e) => setNewFieldDescription(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="required"
+                      checked={isRequired}
+                      onCheckedChange={setIsRequired}
+                    />
+                    <Label htmlFor="required">Required Field</Label>
+                  </div>
+
+                  {/* Field Type Specific Constraints */}
+                  {selectedFieldType === 'short_text' && (
+                    <div className="grid gap-2">
+                      <Label>Maximum Length</Label>
+                      <Input
+                        type="number"
+                        placeholder="Max length (max 999)"
+                        value={constraints?.max_length ?? ''}
+                        onChange={(e) => {
+                          const value = Math.min(Math.max(Number(e.target.value), 1), 999);
+                          setConstraints({ ...constraints ?? {}, max_length: value });
+                        }}
+                      />
+                      <p className="text-xs text-[#86868b]">Maximum length: 1-999 characters</p>
+                    </div>
+                  )}
+
+                  {selectedFieldType === 'number' && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="grid gap-2">
+                        <Label>Minimum Value</Label>
+                        <Input
+                          type="number"
+                          placeholder="Min value"
+                          value={constraints?.min_value ?? ''}
+                          onChange={(e) => setConstraints({ ...constraints ?? {}, min_value: Number(e.target.value) })}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>Maximum Value</Label>
+                        <Input
+                          type="number"
+                          placeholder="Max value"
+                          value={constraints?.max_value ?? ''}
+                          onChange={(e) => setConstraints({ ...constraints ?? {}, max_value: Number(e.target.value) })}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {(selectedFieldType === 'multiple_choice' || selectedFieldType === 'dropdown') && (
+                    <>
+                      <div className="grid gap-2">
+                        <Label>Options (minimum 2 choices, one per line)</Label>
+                        <Textarea
+                          placeholder="Enter options"
+                          value={constraints?.options?.join('\n') ?? ''}
+                          onChange={(e) => {
+                            const options = e.target.value.split('\n').filter(opt => opt.trim());
+                            setConstraints({
+                              ...constraints ?? {},
+                              options: options.length >= 2 ? options : constraints?.options
+                            });
+                          }}
+                          className="min-h-[100px]"
+                        />
+                        {constraints?.options && constraints.options.length < 2 && (
+                          <p className="text-sm text-red-500">Minimum 2 choices required</p>
+                        )}
+                      </div>
+
+                      {selectedFieldType === 'multiple_choice' && (
+                        <div className="space-y-4">
+                          <div className="flex items-center space-x-2">
+                            <Switch
+                              id="allow_multiple"
+                              checked={constraints?.allow_multiple ?? false}
+                              onCheckedChange={(checked) => setConstraints({
+                                ...constraints ?? {},
+                                allow_multiple: checked
+                              })}
+                            />
+                            <Label htmlFor="allow_multiple">Allow Multiple Selections</Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Switch
+                              id="randomize"
+                              checked={constraints?.randomize ?? false}
+                              onCheckedChange={(checked) => setConstraints({
+                                ...constraints ?? {},
+                                randomize: checked
+                              })}
+                            />
+                            <Label htmlFor="randomize">Randomize Choices</Label>
+                          </div>
+                        </div>
+                      )}
+
+                      {selectedFieldType === 'dropdown' && (
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            id="alphabetical_order"
+                            checked={constraints?.alphabetical_order ?? false}
+                            onCheckedChange={(checked) => setConstraints({
+                              ...constraints ?? {},
+                              alphabetical_order: checked
+                            })}
+                          />
+                          <Label htmlFor="alphabetical_order">Display in Alphabetical Order</Label>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {selectedFieldType === 'rating' && (
+                    <div className="grid gap-2">
+                      <Label>Steps (2-10)</Label>
+                      <Input
+                        type="number"
+                        placeholder="Number of steps"
+                        value={constraints?.steps ?? ''}
+                        onChange={(e) => {
+                          const value = Math.min(Math.max(Number(e.target.value), 2), 10);
+                          setConstraints({ ...constraints ?? {}, steps: value });
+                        }}
+                      />
+                      <p className="text-xs text-[#86868b]">Number of steps: 2-10</p>
+                    </div>
+                  )}
+
+                  <Button
+                    onClick={addNewField}
+                    className="w-full bg-[#f5f5f7] dark:bg-[#3a3a3c] text-[#1d1d1f] dark:text-white hover:bg-[#e5e5ea] dark:hover:bg-[#3a3a3c] rounded-lg h-10 text-base font-medium focus-visible:ring-0 focus-visible:ring-offset-0"
+                    disabled={!newFieldLabel}
+                  >
+                    <Plus className="mr-2 h-4 w-4" /> Add Field
+                  </Button>
+
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsEditSurveyOpen(false);
+                  // Reset form state
+                  setFormFields([]);
+                  setSurveyName("");
+                  setSurveyDescription("");
+                }}
+                className="focus-visible:ring-0 focus-visible:ring-offset-0"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  // Validate and save changes
+                  if (!surveyName.trim()) {
+                    toast({
+                      title: "Survey name required",
+                      description: "Please enter a name for your survey",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+
+                  // Here you would typically make an API call to update the survey
+                  toast({
+                    title: "Survey updated",
+                    description: "Your changes have been saved successfully",
+                  });
+                  setIsEditSurveyOpen(false);
+                }}
                 className="bg-[#73a9e9] hover:bg-[#5d8fd1] text-white focus-visible:ring-0 focus-visible:ring-offset-0"
               >
                 Save Changes
               </Button>
             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
 
-      {/* Delete Survey Confirmation Dialog */}
-      <Dialog open={isDeleteSurveyOpen} onOpenChange={setIsDeleteSurveyOpen}>
-        <DialogContent className="sm:max-w-[400px]">
-          <DialogHeader>
-            <DialogTitle>Delete Survey</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete "{selectedTemplate.name}"? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex justify-end gap-3 pt-4">
-            <Button
-              variant="outline"
-              onClick={() => setIsDeleteSurveyOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleDeleteSurvey}
-              className="bg-red-500 hover:bg-red-600 text-white"
-            >
-              Delete Survey
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+        {/* Edit Field Dialog */}
+        <Dialog open={isEditFieldOpen} onOpenChange={setIsEditFieldOpen}>
+          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Field</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-6 py-4">
+              <div className="grid gap-2">
+                <Label>Field Type</Label>
+                <Select
+                  value={selectedFieldType}
+                  onValueChange={(value: FormField['type']) => {
+                    setSelectedFieldType(value);
+                    // Reset constraints when field type changes
+                    setConstraints({});
+                  }}
+                >
+                  <SelectTrigger className="focus-visible:ring-0 focus-visible:ring-offset-0">
+                    <SelectValue placeholder="Select field type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="short_text">Short Text</SelectItem>
+                    <SelectItem value="long_text">Long Text</SelectItem>
+                    <SelectItem value="number">Number</SelectItem>
+                    <SelectItem value="yes_no">Yes/No</SelectItem>
+                    <SelectItem value="multiple_choice">Multiple Choice</SelectItem>
+                    <SelectItem value="dropdown">Dropdown</SelectItem>
+                    <SelectItem value="rating">Rating</SelectItem>
+                    <SelectItem value="email">Email</SelectItem>
+                    <SelectItem value="phone">Phone Number</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-    </DoctorLayoutWrapper >
+              <div className="grid gap-2">
+                <Label>Field Label</Label>
+                <Input
+                  placeholder="Enter field label"
+                  value={newFieldLabel}
+                  onChange={(e) => setNewFieldLabel(e.target.value)}
+                  className="focus-visible:ring-0 focus-visible:ring-offset-0"
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label>Description (Optional)</Label>
+                <Input
+                  placeholder="Enter field description"
+                  value={newFieldDescription}
+                  onChange={(e) => setNewFieldDescription(e.target.value)}
+                  className="focus-visible:ring-0 focus-visible:ring-offset-0"
+                />
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="required"
+                  checked={isRequired}
+                  onCheckedChange={setIsRequired}
+                />
+                <Label htmlFor="required">Required Field</Label>
+              </div>
+
+              {/* Field Type Specific Constraints */}
+              {selectedFieldType === 'short_text' && (
+                <div className="grid gap-2">
+                  <Label>Maximum Length</Label>
+                  <Input
+                    type="number"
+                    placeholder="Max length (max 999)"
+                    value={constraints?.max_length ?? ''}
+                    onChange={(e) => {
+                      const value = Math.min(Math.max(Number(e.target.value), 1), 999);
+                      setConstraints({ ...constraints ?? {}, max_length: value });
+                    }}
+                  />
+                  <p className="text-xs text-[#86868b]">Maximum length: 1-999 characters</p>
+                </div>
+              )}
+
+              {selectedFieldType === 'number' && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label>Minimum Value</Label>
+                    <Input
+                      type="number"
+                      placeholder="Min value"
+                      value={constraints?.min_value ?? ''}
+                      onChange={(e) => setConstraints({ ...constraints ?? {}, min_value: Number(e.target.value) })}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Maximum Value</Label>
+                    <Input
+                      type="number"
+                      placeholder="Max value"
+                      value={constraints?.max_value ?? ''}
+                      onChange={(e) => setConstraints({ ...constraints ?? {}, max_value: Number(e.target.value) })}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {(selectedFieldType === 'multiple_choice' || selectedFieldType === 'dropdown') && (
+                <>
+                  <div className="grid gap-2">
+                    <Label>Options (minimum 2 choices, one per line)</Label>
+                    <Textarea
+                      placeholder="Enter options"
+                      value={constraints?.options?.join('\n') ?? ''}
+                      onChange={(e) => {
+                        const options = e.target.value.split('\n').filter(opt => opt.trim());
+                        setConstraints({
+                          ...constraints ?? {},
+                          options: options.length >= 2 ? options : constraints?.options
+                        });
+                      }}
+                      className="min-h-[100px]"
+                    />
+                    {constraints?.options && constraints.options.length < 2 && (
+                      <p className="text-sm text-red-500">Minimum 2 choices required</p>
+                    )}
+                  </div>
+
+                  {selectedFieldType === 'multiple_choice' && (
+                    <div className="space-y-4">
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="allow_multiple"
+                          checked={constraints?.allow_multiple ?? false}
+                          onCheckedChange={(checked) => setConstraints({
+                            ...constraints ?? {},
+                            allow_multiple: checked
+                          })}
+                        />
+                        <Label htmlFor="allow_multiple">Allow Multiple Selections</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="randomize"
+                          checked={constraints?.randomize ?? false}
+                          onCheckedChange={(checked) => setConstraints({
+                            ...constraints ?? {},
+                            randomize: checked
+                          })}
+                        />
+                        <Label htmlFor="randomize">Randomize Choices</Label>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedFieldType === 'dropdown' && (
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="alphabetical_order"
+                        checked={constraints?.alphabetical_order ?? false}
+                        onCheckedChange={(checked) => setConstraints({
+                          ...constraints ?? {},
+                          alphabetical_order: checked
+                        })}
+                      />
+                      <Label htmlFor="alphabetical_order">Display in Alphabetical Order</Label>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {selectedFieldType === 'rating' && (
+                <div className="grid gap-2">
+                  <Label>Steps (2-10)</Label>
+                  <Input
+                    type="number"
+                    placeholder="Number of steps"
+                    value={constraints?.steps ?? ''}
+                    onChange={(e) => {
+                      const value = Math.min(Math.max(Number(e.target.value), 2), 10);
+                      setConstraints({ ...constraints ?? {}, steps: value });
+                    }}
+                  />
+                  <p className="text-xs text-[#86868b]">Number of steps: 2-10</p>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsEditFieldOpen(false);
+                    // Reset form state
+                    setEditingField(null);
+                    setSelectedFieldType('short_text');
+                    setNewFieldLabel('');
+                    setNewFieldReference('');
+                    setNewFieldDescription('');
+                    setIsRequired(false);
+                    setConstraints({});
+                  }}
+                  className="focus-visible:ring-0 focus-visible:ring-offset-0"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={saveEditedField}
+                  disabled={!newFieldLabel.trim()}
+                  className="bg-[#73a9e9] hover:bg-[#5d8fd1] text-white focus-visible:ring-0 focus-visible:ring-offset-0"
+                >
+                  Save Changes
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Survey Confirmation Dialog */}
+        <Dialog open={isDeleteSurveyOpen} onOpenChange={setIsDeleteSurveyOpen}>
+          <DialogContent className="sm:max-w-[400px]">
+            <DialogHeader>
+              <DialogTitle>Delete Survey</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete "{selectedTemplate.name}"? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex justify-end gap-3 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => setIsDeleteSurveyOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleDeleteSurvey}
+                className="bg-red-500 hover:bg-red-600 text-white"
+              >
+                Delete Survey
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </main>
+    </DoctorLayoutWrapper>
   )
 } 
