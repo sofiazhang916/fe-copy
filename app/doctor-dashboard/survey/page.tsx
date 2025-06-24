@@ -727,11 +727,10 @@ Thank you for your time.`);
 
       // 1) Fetch the individual response
       const res = await fetch(
-        `https://sales.getatlasai.co/survey-service/form/view-response?form_id=${selectedTemplate.id}&response_id=${responseId}`,
-        {
-          headers: { Authorization: token }
-        }
+        `/api/survey/response?form_id=${selectedTemplate.id}&response_id=${responseId}`,
+        { headers: { Authorization: token } }
       );
+
       if (!res.ok) {
         console.warn("Response error body:", await res.text());
         throw new Error(`Failed to fetch response details (status ${res.status})`);
