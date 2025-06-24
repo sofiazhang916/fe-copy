@@ -55,7 +55,7 @@ interface Template {
   id: string;
   name: string;
   description: string;
-  responseRate: number;
+  totalSent: number;
   averageRating: number;
   fields: {
     name: string;
@@ -149,20 +149,22 @@ export default function ReviewPage() {
     if (!templatesList) return;
 
     const filtered = templatesList.filter((template) => {
-      const searchLower = searchQuery.toLowerCase()
+      const searchLower = searchQuery.toLowerCase();
       return (
         template.name.toLowerCase().includes(searchLower) ||
         template.description.toLowerCase().includes(searchLower) ||
-        template.fields.some(field => field.name.toLowerCase().includes(searchLower))
-      )
-    })
-    setFilteredTemplates(filtered)
+        template.fields.some((field) => field.name.toLowerCase().includes(searchLower))
+      );
+    });
 
-    // If the selected template is filtered out, select the first available template
-    if (filtered.length > 0 && selectedTemplate && !filtered.find(t => t.id === selectedTemplate.id)) {
-      setSelectedTemplate(filtered[0])
+    setFilteredTemplates(filtered);
+
+    // Only set selectedTemplate if it's null or removed from filtered list
+    const stillExists = filtered.find(t => t.id === selectedTemplate?.id);
+    if (!stillExists && filtered.length > 0) {
+      setSelectedTemplate(filtered[0]);
     }
-  }, [searchQuery, templatesList, selectedTemplate])
+  }, [searchQuery, templatesList]);
 
   // Fetch templates on mount
   useEffect(() => {
@@ -178,7 +180,7 @@ export default function ReviewPage() {
           headers: { Authorization: token }
         });
 
-        const data = await response.json(); // ✅ read body once
+        const data = await response.json();
 
         if (!response.ok) {
           console.error("Fetch error body:", data);
@@ -187,16 +189,16 @@ export default function ReviewPage() {
 
         const templatesData = data.content || [];
 
-
         // Transform API data to Template format
         const transformedTemplates: Template[] = templatesData.map((t: any) => ({
           id: t.survey_id,
           name: t.survey_title,
           description: t.survey_description,
-          responseRate: 0, // Not provided by API
-          averageRating: 0, // Not provided by API
+          totalSent: t.total_sent,
           fields: [] // Will be fetched on selection
         }));
+
+        console.log("Transformed templates:", transformedTemplates);
 
         setTemplatesList(transformedTemplates);
         setFilteredTemplates(transformedTemplates);
@@ -223,50 +225,52 @@ export default function ReviewPage() {
     fetchTemplates();
   }, [toast]);
 
+
   // Fetch fields and responses when template is selected
   useEffect(() => {
     const fetchTemplateDetails = async () => {
-      if (!selectedTemplate) {
-        throw new Error('No template ID selected');
-      }
+      if (!selectedTemplate) return;
 
       try {
         setIsLoadingResponses(true);
         await refreshTokens();
         const token = `Bearer ${localStorage.getItem('access_token')}`;
 
-        // Fetch fields
+        // Fetch fields from real API
         const fieldsResponse = await fetch(
           `/api/survey/fields?form_id=${selectedTemplate.id}`,
           { headers: { Authorization: token } }
         );
+        console.log(selectedTemplate.id)
 
         if (!fieldsResponse.ok) throw new Error('Failed to fetch fields');
 
         const fieldsData = await fieldsResponse.json();
-        const fields = fieldsData.content?.content?.fields || [];
+        const fields = fieldsData.content?.fields || [];
 
-        // Update template with fields
-        const updatedTemplate = {
-          ...selectedTemplate,
-          fields: fields.map((f: any) => ({
-            name: f.title,
-            type: fieldTypeMap[f.field_type] || 'short_text',
-            required: f.required,
-            fieldReference: f.ref
-          }))
-        };
+        // Map fields to your FormField type
+        const mappedFields: Template['fields'] = fields.map((f: any) => ({
+          name: f.title,
+          type: fieldTypeMap[f.field_type] || 'short_text',
+          required: f.required,
+          fieldReference: f.ref
+        }));
 
-        // Update templates list
-        setTemplatesList(prev =>
-          prev.map(t => t.id === selectedTemplate.id ? updatedTemplate : t)
-        );
-        setFilteredTemplates(prev =>
-          prev.map(t => t.id === selectedTemplate.id ? updatedTemplate : t)
-        );
-        setSelectedTemplate(updatedTemplate);
+        // Only update if fields changed to avoid infinite loop
+        const currentFields = selectedTemplate.fields || [];
+        const fieldsChanged = JSON.stringify(currentFields) !== JSON.stringify(mappedFields);
 
-        // Fetch responses
+        if (fieldsChanged) {
+          setTemplatesList(prev =>
+            prev.map(t => t.id === selectedTemplate.id ? { ...t, fields: mappedFields } : t)
+          );
+          setFilteredTemplates(prev =>
+            prev.map(t => t.id === selectedTemplate.id ? { ...t, fields: mappedFields } : t)
+          );
+          setSelectedTemplate(prev => prev ? { ...prev, fields: mappedFields } : prev);
+        }
+
+        // Fetch responses for this template
         const responsesResponse = await fetch(
           `/api/survey/responses?form_id=${selectedTemplate.id}`,
           { headers: { Authorization: token } }
@@ -277,36 +281,38 @@ export default function ReviewPage() {
         const responsesData = await responsesResponse.json();
         const feedbackList = responsesData.content?.feedback_list || [];
 
-        // Transform to Review format
-        const transformedResponses: Review[] = feedbackList.map((r: any) => ({
+        // Map responses to your Review type minimally (you can expand later)
+        const mappedResponses: Review[] = feedbackList.map((r: any) => ({
           id: r.feedback_id,
           patientName: r.user_name,
-          rating: 0, // Will be populated in detailed fetch
-          feedback: '', // Will be populated in detailed fetch
+          rating: 0, // will be filled when fetching individual response
+          feedback: '',
           timestamp: r.submitted_at,
           template: selectedTemplate.name,
-          fieldResponses: [] // Will be populated in detailed fetch
+          fieldResponses: [],
         }));
 
-        setResponses(transformedResponses);
+        setResponses(mappedResponses);
+
       } catch (error) {
-        console.error('Error fetching template details:', error);
+        console.error('Error fetching template details or responses:', error);
         toast({
           title: "Failed to load template details",
-          description: "Could not fetch fields and responses",
+          description: "Could not fetch fields or responses",
           variant: "destructive",
         });
+        setResponses([]);
+        setSelectedTemplate(prev => prev ? { ...prev, fields: [] } : prev);
       } finally {
         setIsLoadingResponses(false);
       }
     };
 
-    if (selectedTemplate) {
-      fetchTemplateDetails();
-    }
-  }, [selectedTemplate, toast]);
+    fetchTemplateDetails();
+  }, [selectedTemplate?.id, toast]);
 
   // Fetch detailed response when selected
+  // Replace your existing fetchResponseDetails useEffect with this:
   useEffect(() => {
     const fetchResponseDetails = async () => {
       if (!selectedResponse || !selectedTemplate) return;
@@ -324,14 +330,12 @@ export default function ReviewPage() {
         if (!response.ok) throw new Error('Failed to fetch response details');
 
         const data = await response.json();
-        const responseData = data.content || {};
-        const answers = responseData.answers || [];
+        const responseContent = data.content;
 
-        // Map field answers to our format
-        const fieldResponses = answers.map((a: any) => {
+        // Map answers to your fieldResponses format
+        const fieldResponses = responseContent.answers.map((a: any) => {
           let value: any = a.field_answer;
 
-          // Convert to proper types
           switch (a.field_type) {
             case 'number':
             case 'rating':
@@ -352,32 +356,28 @@ export default function ReviewPage() {
           };
         });
 
-        // Find if there's a rating field
-        const ratingField = fieldResponses.find(
-          (fr: { fieldReference: string | string[]; fieldName: string | string[]; }) => fr.fieldReference.includes('rating') || fr.fieldName.includes('Rating')
+        // Try to find rating and feedback fields if present
+        const ratingField = fieldResponses.find((fr: { fieldReference: string | string[]; fieldName: string; }) => fr.fieldReference.includes('rating') || fr.fieldName.toLowerCase().includes('rating'));
+        const feedbackField = fieldResponses.find((fr: { fieldReference: string | string[]; fieldName: string; }) =>
+          fr.fieldReference.includes('feedback') ||
+          fr.fieldName.toLowerCase().includes('feedback') ||
+          fr.fieldName.toLowerCase().includes('comment')
         );
 
-        // Find if there's a feedback field
-        const feedbackField = fieldResponses.find(
-          (fr: { fieldReference: string | string[]; fieldName: string | string[]; }) => fr.fieldReference.includes('feedback') ||
-            fr.fieldName.includes('Feedback') ||
-            fr.fieldName.includes('Comment')
-        );
-
-        // Update the response
         const updatedResponse: Review = {
           ...selectedResponse,
           rating: ratingField?.value ? Number(ratingField.value) : 0,
           feedback: feedbackField?.value ? String(feedbackField.value) : '',
-          fieldResponses
+          fieldResponses,
         };
 
         setSelectedResponse(updatedResponse);
 
-        // Update responses list
+        // Update responses list with detailed response
         setResponses(prev =>
           prev.map(r => r.id === updatedResponse.id ? updatedResponse : r)
         );
+
       } catch (error) {
         console.error('Error fetching response details:', error);
         toast({
@@ -770,7 +770,11 @@ Thank you for your time.`);
                           key={template.id}
                           className={`p-4 border-b border-[#e5e5ea] dark:border-[#3a3a3c] cursor-pointer hover:bg-[#f5f5f7] dark:hover:bg-[#3a3a3c] ${selectedTemplate?.id === template.id ? "bg-[#f5f5f7] dark:bg-[#3a3a3c]" : ""
                             }`}
-                          onClick={() => setSelectedTemplate(template)}
+                          onClick={() => {
+                            if (template.id !== selectedTemplate?.id) {
+                              setSelectedTemplate(template);
+                            }
+                          }}
                         >
                           <div className="flex flex-col gap-2">
                             <h4 className="font-medium text-[#1d1d1f] dark:text-white">
@@ -1136,14 +1140,6 @@ Thank you for your time.`);
                                 Create Survey
                               </Button>
                             </div>
-
-                            {/* Add validation feedback */}
-                            {/* {!surveyName.trim() && (
-                              <p className="text-sm text-red-500 mt-2">Please enter a survey name</p>
-                            )} */}
-                            {/* {formFields.length === 0 && (
-                              <p className="text-sm text-red-500 mt-2">Please add at least one field to your survey</p>
-                            )} */}
                           </DialogContent>
                         </Dialog>
                       </div>
@@ -1214,7 +1210,7 @@ Thank you for your time.`);
                             <h6 className="text-sm font-medium text-[#1d1d1f] dark:text-white">Total Sent</h6>
                             <Mail className="h-4 w-4 text-[#73a9e9]" />
                           </div>
-                          <p className="text-2xl font-semibold text-[#1d1d1f] dark:text-white">1,234</p>
+                          <p className="text-2xl font-semibold text-[#1d1d1f] dark:text-white">{selectedTemplate?.totalSent ?? 0}</p>
                           <p className="text-xs text-[#86868b] dark:text-[#a1a1a6] mt-1">Last 30 days</p>
                         </div>
                         <div className="bg-[#f5f5f7] dark:bg-[#3a3a3c] rounded-lg p-4">
