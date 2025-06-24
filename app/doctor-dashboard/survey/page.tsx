@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -111,6 +111,8 @@ const fieldTypeMap: Record<string, FormField['type']> = {
 };
 
 export default function ReviewPage() {
+  const router = useRouter()
+  const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null)
@@ -126,8 +128,6 @@ export default function ReviewPage() {
   const [isRequired, setIsRequired] = useState(false)
   const [constraints, setConstraints] = useState<FormField['constraints']>({})
   const [newFieldReference, setNewFieldReference] = useState("")
-  const router = useRouter()
-  const { toast } = useToast()
   const [selectedResponse, setSelectedResponse] = useState<Review | null>(null);
   const [isResponseDialogOpen, setIsResponseDialogOpen] = useState(false);
   const [isSendSurveyOpen, setIsSendSurveyOpen] = useState(false);
@@ -143,23 +143,24 @@ export default function ReviewPage() {
   const [isLoadingResponses, setIsLoadingResponses] = useState(false);
   const [isLoadingResponseDetails, setIsLoadingResponseDetails] = useState(false);
   const [responses, setResponses] = useState<Review[]>([]);
+  const DOCTOR_ID = "b979d98e-8011-7080-ec48-3e9d0ce6908f"
 
   // Filter templates based on search query
   useEffect(() => {
-    if (!templatesList) return;
-
-    const filtered = templatesList.filter((template) => {
-      const searchLower = searchQuery.toLowerCase();
+    const searchLower = searchQuery.toLowerCase();
+    const filtered = templatesList.filter(template => {
+      const name = (template.name ?? '').toLowerCase();
+      const desc = (template.description ?? '').toLowerCase();
+      const fieldsMatch = template.fields.some(field => (field.name ?? '').toLowerCase().includes(searchLower));
       return (
-        template.name.toLowerCase().includes(searchLower) ||
-        template.description.toLowerCase().includes(searchLower) ||
-        template.fields.some((field) => field.name.toLowerCase().includes(searchLower))
+        name.includes(searchLower) ||
+        desc.includes(searchLower) ||
+        fieldsMatch
       );
     });
-
     setFilteredTemplates(filtered);
 
-    // Only set selectedTemplate if it's null or removed from filtered list
+    // Re-select template if needed...
     const stillExists = filtered.find(t => t.id === selectedTemplate?.id);
     if (!stillExists && filtered.length > 0) {
       setSelectedTemplate(filtered[0]);
@@ -421,7 +422,6 @@ Thank you for your time.`);
     }
   }, [surveyLink]);
 
-
   useEffect(() => {
     const initializePage = async () => {
       if (!isAuthenticated()) {
@@ -447,6 +447,29 @@ Thank you for your time.`);
 
     initializePage()
   }, [router, toast])
+
+  const fetchTemplates = useCallback(async () => {
+    if (!isAuthenticated()) return;
+    await refreshTokens();
+    const token = `Bearer ${localStorage.getItem('access_token')}`;
+    const res = await fetch('/api/survey/template', { headers: { Authorization: token } });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Fetch error');
+    const mapped = (data.content || []).map((t: any) => ({
+      id: t.survey_id,
+      name: t.survey_title,
+      description: t.survey_description,
+      totalSent: t.total_sent,
+      averageRating: t.average_rating ?? 0,
+      fields: [] as any[],
+    }));
+    setTemplatesList(mapped);
+    setFilteredTemplates(mapped);
+  }, [toast]);
+
+  useEffect(() => {
+    fetchTemplates();
+  }, [fetchTemplates]);
 
   const handleLogout = () => {
     clearTokens()
@@ -813,6 +836,91 @@ Thank you for your time.`);
     }
   };
 
+
+  // Inside your component, replace the inline “Create Survey” onClick with this handler:
+  async function handleCreateSurvey() {
+    // Frontend validation: ensure minimum lengths
+    if (surveyName.trim().length < 2) {
+      toast({
+        title: 'Name too short',
+        description: 'Survey name must be at least 2 characters',
+        variant: 'destructive',
+      });
+      return;
+    }
+    if (surveyDescription.trim().length < 2) {
+      toast({
+        title: 'Description too short',
+        description: 'Survey description must be at least 2 characters',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const payload = {
+      title: surveyName,
+      description: surveyDescription,
+      doctor_id: DOCTOR_ID, // replace with actual doctor ID
+      fields: formFields.map(f => {
+        const base: any = {
+          field_type: f.type,
+          ref: f.fieldReference,
+          title: f.label,
+          description: f.description || '',
+          required: f.required,
+        };
+        if (f.constraints) Object.assign(base, f.constraints);
+        return base;
+      }),
+    };
+
+    try {
+      await refreshTokens();
+      const token = `Bearer ${localStorage.getItem('access_token')}`;
+
+      // Call local API route
+      const res = await fetch('/api/survey/form/create-form', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: token,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`API Error ${res.status}: ${errText}`);
+      }
+
+      const { content: newForm } = await res.json();
+      toast({
+        title: 'Survey created',
+        description: `Created form ID ${newForm.form_id}`,
+      });
+
+      // Close modal, reset form, and update lists
+      setIsCreateSurveyOpen(false);
+      resetCreateSurveyForm();
+
+      await fetchTemplates();            // ← re-load the full list
+      setSelectedTemplate({              // ← highlight the new one
+        id: newForm.form_id,
+        name: newForm.title,
+        description: newForm.description,
+        totalSent: 0,
+        averageRating: 0,
+        fields: []
+      });
+    } catch (err: any) {
+      console.error('Error creating survey:', err);
+      toast({
+        title: 'Failed to create survey',
+        description: err.message,
+        variant: 'destructive',
+      });
+    }
+  }
 
   if (isLoading) {
     return (
@@ -1205,58 +1313,10 @@ Thank you for your time.`);
                                 Cancel
                               </Button>
                               <Button
-                                className="bg-[#f5f5f7] dark:bg-[#3a3a3c] text-[#1d1d1f] dark:text-white hover:bg-[#e5e5ea] dark:hover:bg-[#3a3a3c] rounded-lg h-10 text-base font-medium focus-visible:ring-0 focus-visible:ring-offset-0"
-                                onClick={() => {
-                                  // Validate required fields
-                                  if (!surveyName.trim()) {
-                                    toast({
-                                      title: "Survey name required",
-                                      description: "Please enter a name for your survey",
-                                      variant: "destructive",
-                                    });
-                                    return;
-                                  }
-
-                                  if (formFields.length === 0) {
-                                    toast({
-                                      title: "No fields added",
-                                      description: "Please add at least one field to your survey",
-                                      variant: "destructive",
-                                    });
-                                    return;
-                                  }
-
-                                  // Validate field references
-                                  const invalidFields = formFields.filter(field => !field.fieldReference.trim());
-                                  if (invalidFields.length > 0) {
-                                    toast({
-                                      title: "Missing field references",
-                                      description: `Please add field references for: ${invalidFields.map(f => f.label).join(', ')}`,
-                                      variant: "destructive",
-                                    });
-                                    return;
-                                  }
-
-                                  // Create survey logic here
-                                  console.log({
-                                    name: surveyName,
-                                    description: surveyDescription,
-                                    fields: formFields
-                                  });
-
-                                  // Show success message
-                                  toast({
-                                    title: "Survey created",
-                                    description: "Your survey has been created successfully",
-                                  });
-
-                                  // Reset form and close modal
-                                  setIsCreateSurveyOpen(false);
-                                  resetCreateSurveyForm();
-                                }}
-                                disabled={!surveyName.trim() || formFields.length === 0}
+                                onClick={handleCreateSurvey}
+                                disabled={!surveyName.trim() || !surveyDescription.trim() || formFields.length === 0 || isLoading}
                               >
-                                Create Survey
+                                {isLoading ? "Creating…" : "Create Survey"}
                               </Button>
                             </div>
                           </DialogContent>
@@ -2212,6 +2272,6 @@ Thank you for your time.`);
           </DialogContent>
         </Dialog>
       </main>
-    </DoctorLayoutWrapper>
+    </DoctorLayoutWrapper >
   )
 }
