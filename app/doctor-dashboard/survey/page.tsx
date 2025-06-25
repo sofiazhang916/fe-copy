@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
-import { LogOut, Calendar, MessageSquare, FlaskRoundIcon as Flask, User, Search, Send, Mail, Star, ChevronDown, Plus, Trash2, Settings, GripVertical } from "lucide-react"
+import { LogOut, Calendar, MessageSquare, FlaskRoundIcon as Flask, User, Search, Send, Mail, Star, ChevronDown, Plus, Trash2, Settings, GripVertical, Edit } from "lucide-react"
 import { ThemeProvider } from "@/components/theme-provider"
 import { clearTokens, isAuthenticated, refreshTokens } from "@/lib/token-service"
 import DoctorLayoutWrapper from "@/components/layouts/doctor-layout"
@@ -574,24 +574,54 @@ Thank you for your time.`);
     });
   };
 
-  const handleSendSurvey = () => {
+  const handleSendSurvey = async () => {
+    // basic validation
     if (!emailToSend.trim()) {
-      toast({
-        title: "Email required",
-        description: "Please enter an email address to send the survey",
-        variant: "destructive",
-      });
-      return;
+      return toast({ title: "Email required", description: "Please enter an email address", variant: "destructive" });
+    }
+    if (!emailSubject.trim()) {
+      return toast({ title: "Subject required", description: "Please enter a subject", variant: "destructive" });
+    }
+    if (!emailBody.trim()) {
+      return toast({ title: "Body required", description: "Please enter a message", variant: "destructive" });
     }
 
-    // Here you would typically make an API call to send the survey
-    console.log("Sending survey to:", emailToSend);
-    toast({
-      title: "Survey sent",
-      description: `Survey has been sent to ${emailToSend}`,
-    });
-    setIsSendSurveyOpen(false);
-    setEmailToSend("");
+    try {
+      await refreshTokens();
+      const token = `Bearer ${localStorage.getItem("access_token")}`;
+      const res = await fetch('/api/sendEmail', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: token,
+        },
+        body: JSON.stringify({
+          to: emailToSend,
+          subject: emailSubject,
+          body: emailBody
+        }),
+      });
+      if (!res.ok) {
+        // pull down any JSON error your route sent
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || `Status ${res.status}`);
+      }
+
+      toast({
+        title: "Survey sent",
+        description: `Your survey has been sent to ${emailToSend}`,
+      });
+      setIsSendSurveyOpen(false);
+      setEmailToSend("");
+      setEmailSubject("");
+      setEmailBody("");
+    } catch (err: any) {
+      toast({
+        title: "Send failed",
+        description: err.message,
+        variant: "destructive",
+      });
+    }
   };
 
   const handleEditSurvey = () => {
@@ -611,29 +641,47 @@ Thank you for your time.`);
     setEmailSubject(`Fill out survey: ${selectedTemplate.name}`);
   };
 
-  const handleDeleteSurvey = () => {
+  async function handleDeleteSurvey() {
     if (!selectedTemplate) return;
 
-    // Remove the template from the list
-    const updatedTemplates = templatesList.filter(t => t.id !== selectedTemplate.id);
-    setTemplatesList(updatedTemplates);
+    try {
+      await refreshTokens();
+      const token = `Bearer ${localStorage.getItem('access_token')}`;
 
-    // Update filtered templates
-    setFilteredTemplates(updatedTemplates);
+      const res = await fetch('/api/survey/form/delete-form', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('access_token')}`,
+        },
+        body: JSON.stringify({ form_id: selectedTemplate.id }),
+      });
 
-    // Select the first available template if there are any left
-    if (updatedTemplates.length > 0) {
-      setSelectedTemplate(updatedTemplates[0]);
-    } else {
-      setSelectedTemplate(null);
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || 'Unknown delete error');
+      }
+
+      toast({
+        title: 'Deleted',
+        description: `Survey "${selectedTemplate.name}" has been deleted.`,
+      });
+      setIsDeleteSurveyOpen(false);
+
+      await fetchTemplates();
+      const remaining = templatesList.filter(
+        (t) => t.id !== selectedTemplate.id
+      );
+      setSelectedTemplate(remaining[0] ?? null);
+    } catch (err: any) {
+      console.error('Delete error:', err);
+      toast({
+        title: 'Delete failed',
+        description: err.message,
+        variant: 'destructive',
+      });
     }
-
-    toast({
-      title: "Survey deleted",
-      description: "The survey has been deleted successfully",
-    });
-    setIsDeleteSurveyOpen(false);
-  };
+  }
 
   const handleEditField = (field: FormField) => {
     setEditingField(field);
@@ -809,7 +857,7 @@ Thank you for your time.`);
       // 5) Build your full Review object
       const detailed: Review = {
         id: content.response_id,
-        patientName: null,                      // or grab from a “name” field if you have one
+        patientName: null,                      // or grab from a "name" field if you have one
         template: selectedTemplate.name,
         timestamp: content.submitted_at,
         rating: ratingField ? Number(ratingField.value) : 0,
@@ -837,7 +885,7 @@ Thank you for your time.`);
   };
 
 
-  // Inside your component, replace the inline “Create Survey” onClick with this handler:
+  // Inside your component, replace the inline "Create Survey" onClick with this handler:
   async function handleCreateSurvey() {
     // Frontend validation: ensure minimum lengths
     if (surveyName.trim().length < 2) {
@@ -1365,7 +1413,7 @@ Thank you for your time.`);
                             className="h-9 w-9 text-[#1d1d1f] dark:text-white hover:bg-[#f5f5f7] dark:hover:bg-[#3a3a3c]"
                             title="Edit Survey"
                           >
-                            <Settings className="h-4 w-4" />
+                            <Edit className="h-4 w-4" />
                           </Button>
                           <Button
                             onClick={() => setIsDeleteSurveyOpen(true)}
@@ -1654,44 +1702,7 @@ Thank you for your time.`);
               >
                 Cancel
               </Button>
-              <Button
-                onClick={() => {
-                  if (!emailToSend.trim()) {
-                    toast({
-                      title: "Email required",
-                      description: "Please enter an email address to send the survey",
-                      variant: "destructive",
-                    });
-                    return;
-                  }
-                  if (!emailSubject.trim()) {
-                    toast({
-                      title: "Subject required",
-                      description: "Please enter an email subject",
-                      variant: "destructive",
-                    });
-                    return;
-                  }
-                  if (!emailBody.trim()) {
-                    toast({
-                      title: "Body required",
-                      description: "Please enter an email body",
-                      variant: "destructive",
-                    });
-                    return;
-                  }
-
-                  // Here you would typically make an API call to send the survey
-                  console.log("Sending survey to:", emailToSend);
-                  toast({
-                    title: "Survey sent",
-                    description: `Survey has been sent to ${emailToSend}`,
-                  });
-                  setIsSendSurveyOpen(false);
-                  setEmailToSend("");
-                  setEmailSubject("");
-                  setEmailBody("");
-                }}
+              <Button onClick={handleSendSurvey}
                 className="bg-[#73a9e9] hover:bg-[#5d8fd1] text-white focus-visible:ring-0 focus-visible:ring-offset-0"
               >
                 Send Survey
