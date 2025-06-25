@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 const BASE_URL = 'https://sales.getatlasai.co/survey-service/form';
 
 export async function GET(req: NextRequest) {
-//   const doctorId = req.nextUrl.searchParams.get('doctor_id');
+  // const doctorId = req.nextUrl.searchParams.get('doctor_id');
   const doctorId = 'b979d98e-8011-7080-ec48-3e9d0ce6908f';
   if (!doctorId) {
     return NextResponse.json({ error: 'Missing doctor_id' }, { status: 400 });

@@ -91,12 +91,6 @@ interface FormField {
   };
 }
 
-// Add a helper function to format the date
-const formatDate = (dateString: string) => {
-  // API date is already in a readable format, so just return it
-  return dateString;
-};
-
 // Field type mapping from API to our types
 const fieldTypeMap: Record<string, FormField['type']> = {
   short_text: 'short_text',
@@ -168,64 +162,62 @@ export default function ReviewPage() {
   }, [searchQuery, templatesList]);
 
   // Fetch templates on mount
-  useEffect(() => {
-    const fetchTemplates = async () => {
-      if (!isAuthenticated()) return;
+  const fetchTemplates = useCallback(async () => {
+    if (!isAuthenticated()) return
 
-      try {
-        setIsLoadingTemplates(true);
-        await refreshTokens();
-        const token = `Bearer ${localStorage.getItem('access_token')}`;
+    try {
+      setIsLoadingTemplates(true)
+      await refreshTokens()
+      const token = `Bearer ${localStorage.getItem('access_token')}`
 
-        const response = await fetch('/api/survey/template', {
-          headers: { Authorization: token }
-        });
+      // 1️⃣ Grab the raw list of all surveys
+      const tplRes = await fetch('/api/survey/template', {
+        headers: { Authorization: token },
+      })
+      const tplData = await tplRes.json()
+      if (!tplRes.ok) throw new Error(tplData.message || 'Failed to fetch templates')
 
-        const data = await response.json();
+      // 2️⃣ Map into your local Template shape (fields still empty for now)
+      const raw: Template[] = (tplData.content || []).map((t: any) => ({
+        id: t.survey_id,
+        name: t.survey_title,
+        description: t.survey_description,
+        totalSent: t.total_sent,
+        averageRating: t.average_rating ?? 0,
+        fields: [],
+      }))
 
-        if (!response.ok) {
-          console.error("Fetch error body:", data);
-          throw new Error('Failed to fetch templates');
-        }
+      // 3️⃣ Kick off ALL /fields checks in parallel (instead of serially)
+      const checks = await Promise.all(
+        raw.map(async tpl => {
+          // Fetch the fields for this form_id
+          const chk = await fetch(`/api/survey/fields?form_id=${tpl.id}`, {
+            headers: { Authorization: token },
+          })
+          // If it's valid, keep the tpl, otherwise drop it
+          return chk.ok ? tpl : null
+        })
+      )
 
-        const templatesData = data.content || [];
+      // 4️⃣ Filter out any nulls (i.e. the 404’d templates)
+      const valid = checks.filter((tpl): tpl is Template => tpl !== null)
 
-        // Transform API data to Template format
-        const transformedTemplates: Template[] = templatesData.map((t: any) => ({
-          id: t.survey_id,
-          name: t.survey_title,
-          description: t.survey_description,
-          totalSent: t.total_sent,
-          fields: [] // Will be fetched on selection
-        }));
+      // 5️⃣ Commit only the valid templates to state
+      setTemplatesList(valid)
+      setFilteredTemplates(valid)
+      setSelectedTemplate(valid[0] ?? null)
 
-        console.log("Transformed templates:", transformedTemplates);
-
-        setTemplatesList(transformedTemplates);
-        setFilteredTemplates(transformedTemplates);
-
-        if (transformedTemplates.length > 0) {
-          const stillSelected = transformedTemplates.find(t => t.id === selectedTemplate?.id);
-          setSelectedTemplate(stillSelected || transformedTemplates[0]);
-        } else {
-          setSelectedTemplate(null);
-        }
-
-      } catch (error) {
-        console.error('Error fetching templates:', error);
-        toast({
-          title: "Failed to load surveys",
-          description: "Could not fetch survey templates",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoadingTemplates(false);
-      }
-    };
-
-    fetchTemplates();
-  }, [toast]);
-
+    } catch (err: any) {
+      console.error('Error fetching templates:', err)
+      toast({
+        title: 'Failed to load surveys',
+        description: err.message,
+        variant: 'destructive',
+      })
+    } finally {
+      setIsLoadingTemplates(false)
+    }
+  }, [toast])
 
   // Fetch fields and responses when template is selected
   useEffect(() => {
@@ -318,89 +310,6 @@ export default function ReviewPage() {
     fetchTemplateDetails();
   }, [selectedTemplate?.id, toast]);
 
-  // Fetch detailed response when selected
-  // useEffect(() => {
-  //   const fetchResponseDetails = async () => {
-  //     if (!selectedResponse || !selectedTemplate) return;
-
-  //     try {
-  //       setIsLoadingResponseDetails(true);
-  //       await refreshTokens();
-  //       const token = `Bearer ${localStorage.getItem('access_token')}`;
-
-  //       const response = await fetch(
-  //         `/api/survey/response?form_id=${selectedTemplate.id}&response_id=${selectedResponse.id}`,
-  //         { headers: { Authorization: token } }
-  //       );
-
-  //       if (!response.ok) throw new Error('Failed to fetch response details');
-
-  //       const data = await response.json();
-  //       const responseContent = data.content;
-
-  //       // Map answers to your fieldResponses format
-  //       const fieldResponses = responseContent.answers.map((a: any) => {
-  //         let value: any = a.field_answer;
-
-  //         switch (a.field_type) {
-  //           case 'number':
-  //           case 'rating':
-  //             value = Number(value);
-  //             break;
-  //           case 'yes_no':
-  //             value = value === 'True';
-  //             break;
-  //           case 'multiple_choice':
-  //             value = value.split(';').map((v: string) => v.trim());
-  //             break;
-  //         }
-
-  //         return {
-  //           fieldName: a.field_title,
-  //           fieldReference: a.field_title.toLowerCase().replace(/\s+/g, '_'),
-  //           value
-  //         };
-  //       });
-
-  //       // Try to find rating and feedback fields if present
-  //       const ratingField = fieldResponses.find((fr: { fieldReference: string | string[]; fieldName: string; }) => fr.fieldReference.includes('rating') || fr.fieldName.toLowerCase().includes('rating'));
-  //       const feedbackField = fieldResponses.find((fr: { fieldReference: string | string[]; fieldName: string; }) =>
-  //         fr.fieldReference.includes('feedback') ||
-  //         fr.fieldName.toLowerCase().includes('feedback') ||
-  //         fr.fieldName.toLowerCase().includes('comment')
-  //       );
-
-  //       const updatedResponse: Review = {
-  //         ...selectedResponse,
-  //         rating: ratingField?.value ? Number(ratingField.value) : 0,
-  //         feedback: feedbackField?.value ? String(feedbackField.value) : '',
-  //         fieldResponses,
-  //       };
-
-  //       setSelectedResponse(updatedResponse);
-
-  //       // Update responses list with detailed response
-  //       setResponses(prev =>
-  //         prev.map(r => r.id === updatedResponse.id ? updatedResponse : r)
-  //       );
-
-  //     } catch (error) {
-  //       console.error('Error fetching response details:', error);
-  //       toast({
-  //         title: "Failed to load response details",
-  //         description: "Could not fetch response data",
-  //         variant: "destructive",
-  //       });
-  //     } finally {
-  //       setIsLoadingResponseDetails(false);
-  //     }
-  //   };
-
-  //   if (selectedResponse) {
-  //     fetchResponseDetails();
-  //   }
-  // }, [selectedResponse, selectedTemplate, toast]);
-
   // Update survey link generation
   useEffect(() => {
     if (selectedTemplate) {
@@ -448,28 +357,28 @@ Thank you for your time.`);
     initializePage()
   }, [router, toast])
 
-  const fetchTemplates = useCallback(async () => {
-    if (!isAuthenticated()) return;
-    await refreshTokens();
-    const token = `Bearer ${localStorage.getItem('access_token')}`;
-    const res = await fetch('/api/survey/template', { headers: { Authorization: token } });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Fetch error');
-    const mapped = (data.content || []).map((t: any) => ({
-      id: t.survey_id,
-      name: t.survey_title,
-      description: t.survey_description,
-      totalSent: t.total_sent,
-      averageRating: t.average_rating ?? 0,
-      fields: [] as any[],
-    }));
-    setTemplatesList(mapped);
-    setFilteredTemplates(mapped);
-  }, [toast]);
+  // const fetchTemplates = useCallback(async () => {
+  //   if (!isAuthenticated()) return;
+  //   await refreshTokens();
+  //   const token = `Bearer ${localStorage.getItem('access_token')}`;
+  //   const res = await fetch('/api/survey/template', { headers: { Authorization: token } });
+  //   const data = await res.json();
+  //   if (!res.ok) throw new Error(data.message || 'Fetch error');
+  //   const mapped = (data.content || []).map((t: any) => ({
+  //     id: t.survey_id,
+  //     name: t.survey_title,
+  //     description: t.survey_description,
+  //     totalSent: t.total_sent,
+  //     averageRating: t.average_rating ?? 0,
+  //     fields: [] as any[],
+  //   }));
+  //   setTemplatesList(mapped);
+  //   setFilteredTemplates(mapped);
+  // }, [toast]);
 
   useEffect(() => {
-    fetchTemplates();
-  }, [fetchTemplates]);
+    fetchTemplates()
+  }, [fetchTemplates])
 
   const handleLogout = () => {
     clearTokens()
@@ -640,48 +549,6 @@ Thank you for your time.`);
     setIsEditSurveyOpen(true);
     setEmailSubject(`Fill out survey: ${selectedTemplate.name}`);
   };
-
-  async function handleDeleteSurvey() {
-    if (!selectedTemplate) return;
-
-    try {
-      await refreshTokens();
-      const token = `Bearer ${localStorage.getItem('access_token')}`;
-
-      const res = await fetch('/api/survey/form/delete-form', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('access_token')}`,
-        },
-        body: JSON.stringify({ form_id: selectedTemplate.id }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message || 'Unknown delete error');
-      }
-
-      toast({
-        title: 'Deleted',
-        description: `Survey "${selectedTemplate.name}" has been deleted.`,
-      });
-      setIsDeleteSurveyOpen(false);
-
-      await fetchTemplates();
-      const remaining = templatesList.filter(
-        (t) => t.id !== selectedTemplate.id
-      );
-      setSelectedTemplate(remaining[0] ?? null);
-    } catch (err: any) {
-      console.error('Delete error:', err);
-      toast({
-        title: 'Delete failed',
-        description: err.message,
-        variant: 'destructive',
-      });
-    }
-  }
 
   const handleEditField = (field: FormField) => {
     setEditingField(field);
@@ -884,8 +751,6 @@ Thank you for your time.`);
     }
   };
 
-
-  // Inside your component, replace the inline "Create Survey" onClick with this handler:
   async function handleCreateSurvey() {
     // Frontend validation: ensure minimum lengths
     if (surveyName.trim().length < 2) {
@@ -969,6 +834,52 @@ Thank you for your time.`);
       });
     }
   }
+
+  async function handleDeleteSurvey() {
+    if (!selectedTemplate) return;
+
+    try {
+      await refreshTokens();
+      const token = `Bearer ${localStorage.getItem('access_token')}`;
+
+      const res = await fetch(
+        `/api/survey/form/delete-form/${selectedTemplate.id}`,
+        { method: 'DELETE', headers: { Authorization: token } }
+      );
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Delete failed');
+      }
+
+      toast({
+        title: 'Survey deleted',
+        description: `“${selectedTemplate.name}” has been removed.`,
+      });
+
+      setIsDeleteSurveyOpen(false);
+
+      // Re-fetch the templates list to sync with backend
+      await fetchTemplates();
+
+      // Update selectedTemplate based on the refreshed templatesList
+      setSelectedTemplate(prevSelected => {
+        // Filter out the deleted template from the current templatesList
+        const remainingTemplates = templatesList.filter(t => t.id !== selectedTemplate.id);
+
+        // If there are remaining templates, select the first one; otherwise, null
+        return remainingTemplates.length ? remainingTemplates[0] : null;
+      });
+
+    } catch (err: any) {
+      toast({
+        title: 'Deletion failed',
+        description: err.message,
+        variant: 'destructive',
+      });
+    }
+  }
+
 
   if (isLoading) {
     return (
