@@ -10,11 +10,19 @@ export async function DELETE(
     if (!form_id) {
         return NextResponse.json({ message: 'Missing form_id' }, { status: 400 })
     }
+    const token = request.headers.get('authorization') || '';
 
     // 1) proxy the delete upstream
     const upstream = await fetch(
         `https://sales.getatlasai.co/survey-service/form/delete-form/${form_id}`,
-        { method: 'DELETE' }
+        {
+            method: 'DELETE',
+            cache: 'no-store',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: token,
+            },
+        }
     )
     if (!upstream.ok) {
         const err = await upstream.text().catch(() => upstream.statusText)
@@ -23,8 +31,6 @@ export async function DELETE(
 
     // 2) force Next.js to re-fetch your list & fields endpoints on the next call
     revalidatePath('/api/survey/template')
-    // if you also cache or tag your /api/survey/fields route, revalidate that too
-    // (or you can just always fetch that with `cache: 'no-store'` on the client)
 
     // 3) finally, respond success
     return NextResponse.json({ message: 'Deleted' }, { status: 200 })

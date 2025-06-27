@@ -187,6 +187,9 @@ export default function ReviewPage() {
         fields: [],
       }))
 
+      // console log all the raw template
+      console.log('Fetched templates from /api/survey/template:', raw)
+
       // 3️⃣ Kick off ALL /fields checks in parallel (instead of serially)
       const checks = await Promise.all(
         raw.map(async tpl => {
@@ -356,25 +359,6 @@ Thank you for your time.`);
 
     initializePage()
   }, [router, toast])
-
-  // const fetchTemplates = useCallback(async () => {
-  //   if (!isAuthenticated()) return;
-  //   await refreshTokens();
-  //   const token = `Bearer ${localStorage.getItem('access_token')}`;
-  //   const res = await fetch('/api/survey/template', { headers: { Authorization: token } });
-  //   const data = await res.json();
-  //   if (!res.ok) throw new Error(data.message || 'Fetch error');
-  //   const mapped = (data.content || []).map((t: any) => ({
-  //     id: t.survey_id,
-  //     name: t.survey_title,
-  //     description: t.survey_description,
-  //     totalSent: t.total_sent,
-  //     averageRating: t.average_rating ?? 0,
-  //     fields: [] as any[],
-  //   }));
-  //   setTemplatesList(mapped);
-  //   setFilteredTemplates(mapped);
-  // }, [toast]);
 
   useEffect(() => {
     fetchTemplates()
@@ -655,6 +639,12 @@ Thank you for your time.`);
     })
   }
 
+  function prettify(key: string) {
+    return key
+      .replace(/[_-]/g, " ")          // underscores or dashes → spaces
+      .replace(/\b\w/g, (c) => c.toUpperCase()); // capitalize each word
+  }
+
   const handleViewResponse = async (responseId: string) => {
     if (!selectedTemplate) return;
 
@@ -752,134 +742,156 @@ Thank you for your time.`);
   };
 
   async function handleCreateSurvey() {
-    // Frontend validation: ensure minimum lengths
+    // 1) client-side validation
     if (surveyName.trim().length < 2) {
-      toast({
+      return toast({
         title: 'Name too short',
         description: 'Survey name must be at least 2 characters',
         variant: 'destructive',
-      });
-      return;
+      })
     }
     if (surveyDescription.trim().length < 2) {
-      toast({
+      return toast({
         title: 'Description too short',
         description: 'Survey description must be at least 2 characters',
         variant: 'destructive',
-      });
-      return;
+      })
     }
 
+    // 2) build your payload
     const payload = {
       title: surveyName,
       description: surveyDescription,
-      doctor_id: DOCTOR_ID, // replace with actual doctor ID
-      fields: formFields.map(f => {
-        const base: any = {
-          field_type: f.type,
-          ref: f.fieldReference,
-          title: f.label,
-          description: f.description || '',
-          required: f.required,
-        };
-        if (f.constraints) Object.assign(base, f.constraints);
-        return base;
-      }),
-    };
+      doctor_id: DOCTOR_ID,
+      fields: formFields.map(f => ({
+        field_type: f.type,
+        ref: f.fieldReference,
+        title: f.label,
+        description: f.description || '',
+        required: f.required,
+        ...(f.constraints ?? {})
+      }))
+    }
 
     try {
-      await refreshTokens();
-      const token = `Bearer ${localStorage.getItem('access_token')}`;
-
-      // Call local API route
+      await refreshTokens()
+      const token = `Bearer ${localStorage.getItem('access_token')}`
       const res = await fetch('/api/survey/form/create-form', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: token,
-        },
+        headers: { 'Content-Type': 'application/json', Authorization: token },
         body: JSON.stringify(payload),
-      });
-
+      })
       if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(`API Error ${res.status}: ${errText}`);
+        const errText = await res.text()
+        throw new Error(`API Error ${res.status}: ${errText}`)
       }
 
-      const { content: newForm } = await res.json();
+      const { content: newForm } = await res.json()
       toast({
         title: 'Survey created',
         description: `Created form ID ${newForm.form_id}`,
-      });
+      })
 
-      // Close modal, reset form, and update lists
-      setIsCreateSurveyOpen(false);
-      resetCreateSurveyForm();
-
-      await fetchTemplates();            // ← re-load the full list
-      setSelectedTemplate({              // ← highlight the new one
+      // build the Template object we care about
+      const createdTpl: Template = {
         id: newForm.form_id,
         name: newForm.title,
         description: newForm.description,
         totalSent: 0,
         averageRating: 0,
         fields: []
-      });
+      }
+
+      console.log("created survey:", createdTpl)
+
+      // 3) immediately inject it into your lists
+      setTemplatesList(prev => [...prev, createdTpl])
+      setFilteredTemplates(prev => [...prev, createdTpl])
+
+      // 4) select it so its name appears in the right-hand pane
+      setSelectedTemplate(createdTpl)
+
+      // 5) close & reset the modal
+      setIsCreateSurveyOpen(false)
+      resetCreateSurveyForm()
+
+      // 6) (optional) re-sync in the background
+      fetchTemplates().catch(console.error)
     } catch (err: any) {
-      console.error('Error creating survey:', err);
+      console.error('Error creating survey:', err)
       toast({
         title: 'Failed to create survey',
         description: err.message,
         variant: 'destructive',
-      });
+      })
     }
   }
 
   async function handleDeleteSurvey() {
     if (!selectedTemplate) return;
 
+    // stash these so we don't close over a changing state object
+    const idToDelete = selectedTemplate.id;
+    const nameToDelete = selectedTemplate.name;
+
     try {
+      // 1) refresh & grab token
       await refreshTokens();
       const token = `Bearer ${localStorage.getItem('access_token')}`;
 
+      // 2) hit your DELETE proxy
       const res = await fetch(
-        `/api/survey/form/delete-form/${selectedTemplate.id}`,
-        { method: 'DELETE', headers: { Authorization: token } }
+        `/api/survey/form/delete-form/${idToDelete}`,
+        {
+          method: 'DELETE',
+          headers: { Authorization: token },
+        }
       );
-
+      console.log("delete response:", res)
       if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || 'Delete failed');
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || 'Delete failed');
       }
 
+      // 3) success toast
       toast({
         title: 'Survey deleted',
-        description: `“${selectedTemplate.name}” has been removed.`,
+        description: `“${nameToDelete}” has been removed.`,
       });
 
+      // 4) close the modal
       setIsDeleteSurveyOpen(false);
 
-      // Re-fetch the templates list to sync with backend
-      await fetchTemplates();
-
-      // Update selectedTemplate based on the refreshed templatesList
-      setSelectedTemplate(prevSelected => {
-        // Filter out the deleted template from the current templatesList
-        const remainingTemplates = templatesList.filter(t => t.id !== selectedTemplate.id);
-
-        // If there are remaining templates, select the first one; otherwise, null
-        return remainingTemplates.length ? remainingTemplates[0] : null;
+      // 5) clear _all_ state tied to that template
+      setTemplatesList(prev => {
+        const updated = prev.filter(t => t.id !== idToDelete);
+        setFilteredTemplates(updated);
+        return updated;
       });
 
-    } catch (err: any) {
+      setSelectedTemplate(prev =>
+        prev?.id === idToDelete
+          // pick the next remaining template (or null)
+          ? templatesList.filter(t => t.id !== idToDelete)[0] || null
+          : prev
+      );
+
+      // clear any right-pane details
+      setResponses([]);
+      setFormFields([]);
+      setSurveyLink('');
+
+      await fetchTemplates().catch(console.error);
+    }
+    catch (err: any) {
+      console.error('Delete error:', err);
       toast({
         title: 'Deletion failed',
-        description: err.message,
+        description: err.message || 'Unable to delete the survey.',
         variant: 'destructive',
       });
     }
   }
-
 
   if (isLoading) {
     return (
@@ -892,12 +904,6 @@ Thank you for your time.`);
         </main>
       </ThemeProvider>
     )
-  }
-
-  function prettify(key: string) {
-    return key
-      .replace(/[_-]/g, " ")          // underscores or dashes → spaces
-      .replace(/\b\w/g, (c) => c.toUpperCase()); // capitalize each word
   }
 
   return (

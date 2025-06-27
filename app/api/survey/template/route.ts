@@ -11,6 +11,7 @@ export async function GET(req: NextRequest) {
 
   const upstream = await fetch(`${BASE_URL}/view-workspace-forms/${doctorId}`, {
     headers: {
+      cache: 'no-store',
       Authorization: req.headers.get('authorization') || '',
     },
   });
